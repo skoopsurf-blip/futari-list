@@ -112,6 +112,8 @@ header { position: sticky; top: 0; z-index: 4; background: var(--bg); padding: 1
 #viewer.show { display: flex; }
 #viewer img { max-width: 100%; max-height: 100%; object-fit: contain; }
 .memo a.lk { color: #7FB8FF; text-decoration: underline; word-break: break-all; }
+.item { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
+.item.lifting { position: relative; z-index: 5; transform-origin: center; box-shadow: 0 10px 24px rgba(0,0,0,.55), inset 0 0 0 2px var(--accent); background: #26262A; }
 .tabrow { display: flex; align-items: center; gap: 10px; padding: 10px 2px; border-bottom: 1px solid var(--line); }
 .tabrow span:first-child { flex: 1; }
 .tabrow .cnt { color: var(--text2); font-size: 13px; }
@@ -231,6 +233,7 @@ if (!KEY_ && LOCAL) {
     clearDone: (list) => { save(load().filter(x => !(x.list === list && x.done))); return all(); },
     addList: (n) => { n = String(n || '').trim(); if (!n) throw new Error('タブの名前を入れてください'); const a = lists(); if (a.includes(n)) throw new Error('同じ名前のタブがもうあります'); a.push(n); localStorage.setItem(LK, JSON.stringify(a)); return all(); },
     getPhoto: (id) => { const u = pget()[id]; if (!u) throw new Error('その写真はありません'); return { id, url: u }; },
+    reorder: (list, ids) => { const a = load(); a.forEach(x => { const i = ids.indexOf(x.id); if (x.list === list && i >= 0) x.sort = i; }); save(a); return all(); },
     undoneAll: (list) => { const a = load(); a.forEach(x => { if (x.list === list && x.done) { x.done = false; x.doneBy = ''; x.doneAt = ''; } }); save(a); return all(); },
     deleteItems: (ids) => { save(load().filter(x => !ids.includes(x.id))); return all(); },
     moveItems: (ids, list) => { const a = load(); a.forEach(x => { if (ids.includes(x.id)) x.list = list; }); save(a); return all(); },
@@ -329,7 +332,12 @@ function sortItems(a) {
     if (x.due) return -1; if (y.due) return 1;
     return t(y.addedAt) - t(x.addedAt);
   };
-  const cmp = prefs.order === 'new_bottom' ? (x, y) => t(x.addedAt) - t(y.addedAt)
+  const manual = (x, y) => {
+    const a = x.sort == null ? -1 : x.sort, b = y.sort == null ? -1 : y.sort;
+    return a !== b ? a - b : t(y.addedAt) - t(x.addedAt);
+  };
+  const cmp = prefs.order === 'manual' ? manual
+    : prefs.order === 'new_bottom' ? (x, y) => t(x.addedAt) - t(y.addedAt)
     : prefs.order === 'date' ? byDue(1)
     : prefs.order === 'date_desc' ? byDue(-1)
     : (x, y) => t(y.addedAt) - t(x.addedAt);
@@ -374,7 +382,7 @@ function card(o) {
     <div class="body"><div class="ttl">${esc(o.title)}</div>${meta}</div>
     ${/買い物/.test(o.list) ? "" : `<span>${avOf(o.addedBy)}</span>`}</div>`;
   }
-  return `<div class="item ${o.done ? 'done' : ''}">
+  return `<div class="item ${o.done ? 'done' : ''}" ${o.done ? '' : `data-drag="${esc(o.id)}"`}>
     <button class="chk" data-chk="${esc(o.id)}" aria-label="${o.done ? '済みを戻す' : '済みにする'}">${ICON.check}</button>
     <div class="body" data-edit="${esc(o.id)}">
       <div class="ttl">${o.pinned && !o.done ? `<span class="pin">${SVG_PIN}</span>` : ''}${esc(o.title)}</div>
@@ -425,6 +433,52 @@ $('main').addEventListener('click', (e) => {
   if (a && a.dataset.act === 'clearDone') { const t = st.tab; ask(t + 'の完了したものを全部消す？<br>（元に戻せない）', () => call('clearDone', [t])); }
 });
 $('addtab').addEventListener('click', openTabs);
+// 長押しで並べ替え（未完了の項目だけ）。動かしたら表示の順番を「自分で並べた順」にして、順番をサーバーへ保存
+let dragging = false, suppressClick = false;
+(() => {
+  let timer = null, card = null, sy = 0, sx = 0, base = 0;
+  const cancel = () => { clearTimeout(timer); timer = null; };
+  document.addEventListener('touchstart', (e) => {
+    const c = e.target.closest('[data-drag]');
+    if (!c || st.sel || $('sheet').classList.contains('show')) return;
+    sy = e.touches[0].clientY; sx = e.touches[0].clientX;
+    timer = setTimeout(() => {
+      timer = null; dragging = true; card = c; base = sy;
+      card.classList.add('lifting');
+      if (navigator.vibrate) navigator.vibrate(15);
+    }, 450);
+  }, { passive: true });
+  document.addEventListener('touchmove', (e) => {
+    const y = e.touches[0].clientY, x = e.touches[0].clientX;
+    if (timer && (Math.abs(y - sy) > 8 || Math.abs(x - sx) > 8)) cancel();
+    if (!dragging || !card) return;
+    e.preventDefault();
+    card.style.transform = `translateY(${y - base}px)`;
+    const sibs = [...card.parentNode.querySelectorAll('[data-drag]')].filter((n) => n !== card);
+    for (const n of sibs) {
+      const r = n.getBoundingClientRect(), mid = r.top + r.height / 2;
+      const before = card.compareDocumentPosition(n) & Node.DOCUMENT_POSITION_PRECEDING;
+      if (before && y < mid) { const old = card.getBoundingClientRect().top; n.before(card); base += card.getBoundingClientRect().top - old; card.style.transform = `translateY(${y - base}px)`; break; }
+      if (!before && y > mid) { const old = card.getBoundingClientRect().top; n.after(card); base += card.getBoundingClientRect().top - old; card.style.transform = `translateY(${y - base}px)`; }
+    }
+  }, { passive: false });
+  const end = () => {
+    cancel();
+    if (!dragging || !card) return;
+    card.classList.remove('lifting'); card.style.transform = '';
+    const ids = [...$('main').querySelectorAll('[data-drag]')].map((n) => n.dataset.drag);
+    ids.forEach((id, i) => { const o = st.items.find((x) => x.id === id); if (o) o.sort = i; });
+    if (prefs.order !== 'manual') { prefs.order = 'manual'; savePrefs(); toast('表示の順番を「自分で並べた順」にした'); }
+    dragging = false; card = null; suppressClick = true; setTimeout(() => { suppressClick = false; }, 400);
+    render();
+    call('reorder', [st.tab, ids]);
+  };
+  document.addEventListener('touchend', end, { passive: true });
+  document.addEventListener('touchcancel', end, { passive: true });
+})();
+document.addEventListener('click', (e) => { if (suppressClick) { e.stopPropagation(); e.preventDefault(); } }, true);
+document.addEventListener('contextmenu', (e) => { if (e.target.closest('[data-drag]')) e.preventDefault(); });
+
 // 横にスライドしてタブを移る（左へ＝次のタブ・右へ＝前のタブ）。縦のスクロールと区別するため、横に60px以上・縦の1.5倍以上動いたときだけ
 (() => {
   let x0 = null, y0 = 0;
@@ -433,7 +487,7 @@ $('addtab').addEventListener('click', openTabs);
     x0 = e.touches[0].clientX; y0 = e.touches[0].clientY;
   }, { passive: true });
   document.addEventListener('touchend', (e) => {
-    if (x0 === null) return;
+    if (x0 === null || dragging) { x0 = null; return; }
     const dx = e.changedTouches[0].clientX - x0, dy = e.changedTouches[0].clientY - y0; x0 = null;
     if (Math.abs(dx) < 60 || Math.abs(dx) < Math.abs(dy) * 1.5) return;
     const i = st.lists.indexOf(st.tab), j = i + (dx < 0 ? 1 : -1);
@@ -643,6 +697,7 @@ function openPrefs() {
     </div>
     <div class="ph">表示の順番</div>
     <div class="card2" id="pOrder">
+      ${radio('manual', '自分で並べた順（長押しで動かす）')}
       ${radio('new_top', '新着順（新しいものが上）')}
       ${radio('new_bottom', '新着順（新しいものが下）')}
       ${radio('date', '日付順（近い日が上）')}
@@ -681,7 +736,7 @@ function closeSheet() { $('sheet').classList.remove('show'); }
 $('sheet').addEventListener('click', (e) => { if (e.target.id === 'sheet') closeSheet(); });
 
 document.addEventListener('visibilitychange', () => { if (!document.hidden) load(); });
-setInterval(() => { if (!document.hidden && !st.busy && !$('sheet').classList.contains('show')) load(); }, 20000);
+setInterval(() => { if (!document.hidden && !st.busy && !dragging && !$('sheet').classList.contains('show')) load(); }, 20000);
 
 // 人ごとの URL（#k=鍵&u=t が1人目・u=a が2人目）で開けば、名前を選ばなくても誰が足したか分かる
 if (HASH.u && CODES.includes(HASH.u)) st.uc = HASH.u;
