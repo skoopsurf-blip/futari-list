@@ -59,6 +59,8 @@ header { position: sticky; top: 0; z-index: 4; background: var(--bg); padding: 1
 .send { float: right; margin-top: 14px; width: 54px; height: 54px; border-radius: 50%; border: 0; background: var(--accent); color: #fff; display: flex; align-items: center; justify-content: center; box-shadow: 0 6px 16px rgba(255,122,47,.35); }
 .send svg { width: 24px; height: 24px; }
 .panel::after { content: ""; display: block; clear: both; }
+.pin { display: inline-block; width: 14px; height: 14px; color: var(--accent); margin-right: 5px; vertical-align: -1px; }
+.pin svg { width: 14px; height: 14px; display: block; }
 .tabrow { display: flex; align-items: center; gap: 10px; padding: 10px 2px; border-bottom: 1px solid var(--line); }
 .tabrow span:first-child { flex: 1; }
 .tabrow .cnt { color: var(--text2); font-size: 13px; }
@@ -162,8 +164,8 @@ if (!KEY_ && LOCAL) {
   const all = () => ({ items: load(), lists: lists(), users: ['ひとり目', 'ふたり目'], now: new Date().toISOString() });
   api = {
     getAll: () => all(),
-    addItem: (d) => { if (!d.title || !d.title.trim()) throw new Error('内容を入れてください'); const a = load(); a.push({ id: String(Date.now() + Math.random()), list: d.list, title: d.title.trim(), memo: d.memo || '', addedBy: d.user, addedAt: new Date().toISOString(), due: d.due ? new Date(d.due).toISOString() : '', allDay: !!d.allDay && !!d.due, remindMin: d.due ? Number(d.remindMin) : -1, done: false, doneBy: '', doneAt: '' }); save(a); return all(); },
-    updateItem: (id, d) => { const a = load(); const o = a.find(x => x.id === id); if (!o) throw new Error('項目が見つかりません'); Object.assign(o, { list: d.list, title: d.title.trim(), memo: d.memo || '', due: d.due ? new Date(d.due).toISOString() : '', allDay: !!d.allDay && !!d.due, remindMin: d.due ? Number(d.remindMin) : -1 }); save(a); return all(); },
+    addItem: (d) => { if (!d.title || !d.title.trim()) throw new Error('内容を入れてください'); const a = load(); a.push({ id: String(Date.now() + Math.random()), list: d.list, title: d.title.trim(), memo: d.memo || '', addedBy: d.user, addedAt: new Date().toISOString(), due: d.due ? new Date(d.due).toISOString() : '', allDay: !!d.allDay && !!d.due, remindMin: d.due ? Number(d.remindMin) : -1, pinned: !!d.pinned, done: false, doneBy: '', doneAt: '' }); save(a); return all(); },
+    updateItem: (id, d) => { const a = load(); const o = a.find(x => x.id === id); if (!o) throw new Error('項目が見つかりません'); Object.assign(o, { list: d.list, title: d.title.trim(), memo: d.memo || '', due: d.due ? new Date(d.due).toISOString() : '', allDay: !!d.allDay && !!d.due, remindMin: d.due ? Number(d.remindMin) : -1, pinned: !!d.pinned }); save(a); return all(); },
     setDone: (id, done, user) => { const a = load(); const o = a.find(x => x.id === id); if (!o) throw new Error('項目が見つかりません'); o.done = !!done; o.doneBy = done ? user : ''; o.doneAt = done ? new Date().toISOString() : ''; save(a); return all(); },
     deleteItem: (id) => { save(load().filter(x => x.id !== id)); return all(); },
     clearDone: (list) => { save(load().filter(x => !(x.list === list && x.done))); return all(); },
@@ -257,6 +259,7 @@ function remindOn(o) { return !!o.due && o.remindMin >= 0; }
 
 function sortItems(a) {
   return a.slice().sort((x, y) => {
+    if (!!x.pinned !== !!y.pinned) return x.pinned ? -1 : 1;
     if (x.due && y.due) return new Date(x.due) - new Date(y.due);
     if (x.due) return -1; if (y.due) return 1;
     return new Date(y.addedAt) - new Date(x.addedAt);
@@ -292,7 +295,7 @@ function card(o) {
   return `<div class="item ${o.done ? 'done' : ''}">
     <button class="chk" data-chk="${esc(o.id)}" aria-label="${o.done ? '済みを戻す' : '済みにする'}">${ICON.check}</button>
     <div class="body" data-edit="${esc(o.id)}">
-      <div class="ttl">${esc(o.title)}</div>
+      <div class="ttl">${o.pinned && !o.done ? `<span class="pin">${SVG_PIN}</span>` : ''}${esc(o.title)}</div>
       ${o.memo ? `<div class="memo">${esc(o.memo)}</div>` : ''}
       ${meta}
     </div>
@@ -333,6 +336,7 @@ $('fab').addEventListener('click', () => needUser(() => openSheet(null)));
 function pad(n) { return String(n).padStart(2, '0'); }
 const SVG_ALARM = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="13" r="7.5"/><path d="M12 9.5V13l2.5 2M4.5 4.5 2.8 6.2M19.5 4.5l1.7 1.7"/></svg>';
 const SVG_MEMO = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16v11l-5 5H4z"/><path d="M15 20v-5h5M8 9h8M8 13h5"/></svg>';
+const SVG_PIN = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 3h6l-1 6 4 3v2H6v-2l4-3z"/><path d="M12 14v7"/></svg>';
 const SVG_UP = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5M6 11l6-6 6 6"/></svg>';
 function placeholderOf(list) { return list === '予定' ? '予定を入力' : /買い物/.test(list) ? '買うものを入力' : 'やることを入力'; }
 function dayLabel(dv) { if (!dv) return ''; const [y, m, d] = dv.split('-').map(Number); return fmtDue({ due: new Date(y, m - 1, d).toISOString(), allDay: true }); }
@@ -362,6 +366,10 @@ function openSheet(o) {
       <span class="ic">${SVG_MEMO}</span>
       <textarea id="sMemo" class="memoin" rows="1" maxlength="1000" placeholder="メモを入力">${o ? esc(o.memo) : ''}</textarea>
     </div>
+    <div class="line">
+      <span class="ic">${SVG_PIN}</span>
+      <button type="button" class="lnk" id="sPin"></button>
+    </div>
     ${isNew ? '' : `<div class="acts"><button class="btn del" id="sDel">消す</button><button class="btn sub" id="sCancel">やめる</button></div>
     <div class="info">${esc(o.addedBy)}が追加（${new Date(o.addedAt).toLocaleString('ja-JP')}）${o.done ? '・' + esc(o.doneBy) + 'が済みにした' : ''}</div>`}
     <button class="send" id="sSave" aria-label="${isNew ? '追加' : '保存'}">${SVG_UP}</button>`;
@@ -384,6 +392,10 @@ function openSheet(o) {
     if (!$('sTime').value && !$('sAll').checked) { $('sAll').checked = true; fillRem(); }
     syncDay();
   };
+  let pinned = o ? !!o.pinned : false;
+  const syncPin = () => { $('sPin').textContent = pinned ? 'ピン留め中（押すと外す）' : 'ピン留め'; $('sPin').classList.toggle('set', pinned); };
+  syncPin();
+  $('sPin').onclick = () => { pinned = !pinned; syncPin(); };
   fillRem(); syncDay();
   if (dateV) $('sDetail').classList.add('open');
   $('sDayBtn').onclick = () => {
@@ -410,7 +422,7 @@ function openSheet(o) {
       if (all) due = new Date(y, m - 1, dd).toISOString();
       else { const tv = $('sTime').value || '09:00'; const [hh, mm] = tv.split(':').map(Number); due = new Date(y, m - 1, dd, hh, mm).toISOString(); }
     }
-    const data = { list: curList, title, memo: $('sMemo').value, due, allDay: all, remindMin: dv ? Number($('sRem').value) : -1, user: me() };
+    const data = { list: curList, title, memo: $('sMemo').value, due, allDay: all, remindMin: dv ? Number($('sRem').value) : -1, pinned, user: me() };
     closeSheet();
     if (isNew) call('addItem', [data]);
     else call('updateItem', [o.id, data]);
