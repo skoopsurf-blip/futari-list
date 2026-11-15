@@ -61,6 +61,12 @@ header { position: sticky; top: 0; z-index: 4; background: var(--bg); padding: 1
 .panel::after { content: ""; display: block; clear: both; }
 .pin { display: inline-block; width: 14px; height: 14px; color: var(--accent); margin-right: 5px; vertical-align: -1px; }
 .pin svg { width: 14px; height: 14px; display: block; }
+.hist { margin-top: 18px; display: flex; flex-direction: column; gap: 10px; }
+.hrow { display: flex; align-items: center; gap: 10px; font-size: 14px; color: var(--text2); }
+.hrow .av { width: 28px; height: 28px; }
+.hrow .hk { flex: none; }
+.hrow .hn { flex: 1; color: var(--text); }
+.hrow .ht { flex: none; }
 .tabrow { display: flex; align-items: center; gap: 10px; padding: 10px 2px; border-bottom: 1px solid var(--line); }
 .tabrow span:first-child { flex: 1; }
 .tabrow .cnt { color: var(--text2); font-size: 13px; }
@@ -354,6 +360,13 @@ const SVG_ALARM = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" st
 const SVG_MEMO = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16v11l-5 5H4z"/><path d="M15 20v-5h5M8 9h8M8 13h5"/></svg>';
 const SVG_PIN = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 3h6l-1 6 4 3v2H6v-2l4-3z"/><path d="M12 14v7"/></svg>';
 const SVG_UP = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5M6 11l6-6 6 6"/></svg>';
+function whenOf(iso) {
+  const d = new Date(iso); if (isNaN(d)) return '';
+  const day = (x) => new Date(x.getFullYear(), x.getMonth(), x.getDate()).getTime();
+  const diff = Math.round((day(d) - day(new Date())) / 86400000);
+  const rel = diff === 0 ? '今日' : diff === -1 ? '昨日' : (d.getMonth() + 1) + '/' + d.getDate();
+  return rel + ' ' + d.getHours() + ':' + String(d.getMinutes()).padStart(2, '0');
+}
 function placeholderOf(list) { return list === '予定' ? '予定を入力' : /買い物/.test(list) ? '買うものを入力' : 'やることを入力'; }
 function dayLabel(dv) { if (!dv) return ''; const [y, m, d] = dv.split('-').map(Number); return fmtDue({ due: new Date(y, m - 1, d).toISOString(), allDay: true }); }
 function openSheet(o) {
@@ -386,9 +399,12 @@ function openSheet(o) {
       <span class="ic">${SVG_PIN}</span>
       <button type="button" class="lnk" id="sPin"></button>
     </div>
-    ${isNew ? '' : `<div class="acts"><button class="btn del" id="sDel">消す</button><button class="btn sub" id="sCancel">やめる</button></div>
-    <div class="info">${esc(o.addedBy)}が追加（${new Date(o.addedAt).toLocaleString('ja-JP')}）${o.done ? '・' + esc(o.doneBy) + 'が済みにした' : ''}</div>`}
-    <button class="send" id="sSave" aria-label="${isNew ? '追加' : '保存'}">${SVG_UP}</button>`;
+    ${isNew ? '' : `<div class="hist">
+      <div class="hrow">${avOf(o.addedBy)}<span class="hk">作成</span><span class="hn">${esc(o.addedBy)}</span><span class="ht">${whenOf(o.addedAt)}</span></div>
+      ${o.done && o.doneAt ? `<div class="hrow">${avOf(o.doneBy)}<span class="hk">完了</span><span class="hn">${esc(o.doneBy)}</span><span class="ht">${whenOf(o.doneAt)}</span></div>` : ''}
+    </div>
+    <div class="acts"><button class="btn del" id="sDel">消す</button><button class="btn sub" id="sCancel">やめる</button><button class="btn" id="sSave">更新</button></div>`}
+    ${isNew ? `<button class="send" id="sSave" aria-label="追加">${SVG_UP}</button>` : ''}`;
   let curList = list;
   const fillRem = () => {
     const all = $('sAll').checked; const opts = all ? REMIND_ALLDAY : REMIND;
