@@ -98,6 +98,8 @@ header { position: sticky; top: 0; z-index: 4; background: var(--bg); padding: 1
 #selbar button { flex: 1; border: 0; background: none; color: var(--text); font-size: 13px; display: flex; flex-direction: column; align-items: center; gap: 6px; }
 #selbar button svg { width: 26px; height: 26px; }
 #selbar button:disabled { opacity: .35; }
+.sec .more { color: var(--text2); font-size: 20px; letter-spacing: 1px; padding: 0 4px; }
+.opt.danger { color: #FF8A9A; }
 .tabrow { display: flex; align-items: center; gap: 10px; padding: 10px 2px; border-bottom: 1px solid var(--line); }
 .tabrow span:first-child { flex: 1; }
 .tabrow .cnt { color: var(--text2); font-size: 13px; }
@@ -212,6 +214,7 @@ if (!KEY_ && LOCAL) {
     deleteItem: (id) => { save(load().filter(x => x.id !== id)); return all(); },
     clearDone: (list) => { save(load().filter(x => !(x.list === list && x.done))); return all(); },
     addList: (n) => { n = String(n || '').trim(); if (!n) throw new Error('タブの名前を入れてください'); const a = lists(); if (a.includes(n)) throw new Error('同じ名前のタブがもうあります'); a.push(n); localStorage.setItem(LK, JSON.stringify(a)); return all(); },
+    undoneAll: (list) => { const a = load(); a.forEach(x => { if (x.list === list && x.done) { x.done = false; x.doneBy = ''; x.doneAt = ''; } }); save(a); return all(); },
     deleteItems: (ids) => { save(load().filter(x => !ids.includes(x.id))); return all(); },
     moveItems: (ids, list) => { const a = load(); a.forEach(x => { if (ids.includes(x.id)) x.list = list; }); save(a); return all(); },
     deleteList: (n) => { if (load().some(x => x.list === n)) throw new Error('項目が残っているタブは消せません（先に項目を消してください）'); localStorage.setItem(LK, JSON.stringify(lists().filter(x => x !== n))); return all(); }
@@ -332,7 +335,7 @@ function render() {
   else if (!open.length) h = `<div class="empty">ぜんぶ済んだ</div>`;
   h += open.map(card).join('');
   if (done.length) {
-    h += `<div class="sec"><button data-act="toggleDone">${ICON.chev.replace('CLS', st.showDone ? 'open' : '')}完了したもの ${done.length}</button>${st.showDone ? '<button class="clr" data-act="clearDone">全部消す</button>' : ''}</div>`;
+    h += `<div class="sec"><button data-act="toggleDone">${ICON.chev.replace('CLS', st.showDone ? 'open' : '')}完了したもの ${done.length}</button><button class="more" data-act="doneMenu" aria-label="完了したものの操作">…</button></div>`;
     if (st.showDone) h += done.map(card).join('');
   }
   $('main').innerHTML = `<div class="tools">${st.sel ? '<button id="selEnd" class="txt">キャンセル</button>' : '<button id="selStart" class="txt">選択</button><button id="menu" aria-label="表示の設定">' + SVG_MENU + '</button>'}</div>` + h;
@@ -391,6 +394,15 @@ $('main').addEventListener('click', (e) => {
   if (ed) { const o = st.items.find((x) => x.id === ed.dataset.edit); if (o) openSheet(o); return; }
   const a = e.target.closest('[data-act]');
   if (a && a.dataset.act === 'toggleDone') { st.showDone = !st.showDone; put('futari_showdone', st.showDone ? '1' : '0'); render(); }
+  if (a && a.dataset.act === 'doneMenu') {
+    const t = st.tab;
+    $('panel').innerHTML = `<div class="grab"></div><div class="ph">完了したもの（${esc(t)}）</div><div class="card2">
+      <button type="button" class="opt" id="mUndo">↶　すべて未完了に戻す</button>
+      <button type="button" class="opt danger" id="mClear">完了したものをすべて削除</button></div>`;
+    $('mUndo').onclick = () => { closeSheet(); call('undoneAll', [t]); };
+    $('mClear').onclick = () => { closeSheet(); ask(t + 'の完了したものを全部消す？<br>（元に戻せない）', () => call('clearDone', [t])); };
+    $('sheet').classList.add('show');
+  }
   if (a && a.dataset.act === 'clearDone') { const t = st.tab; ask(t + 'の完了したものを全部消す？<br>（元に戻せない）', () => call('clearDone', [t])); }
 });
 $('addtab').addEventListener('click', openTabs);
