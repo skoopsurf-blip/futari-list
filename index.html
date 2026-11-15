@@ -121,6 +121,8 @@ header { position: sticky; top: 0; z-index: 4; background: var(--bg); padding: 1
 .asg .av { width: 44px; height: 44px; }
 .asg.on { opacity: 1; color: var(--text); }
 .asg.on::after { content: "✓"; position: absolute; top: -4px; left: -4px; width: 20px; height: 20px; border-radius: 50%; background: var(--accent); color: #fff; font-size: 12px; line-height: 20px; text-align: center; }
+.grp { font-size: 13px; font-weight: 700; color: var(--accent); margin: 14px 6px 6px; }
+.grp:first-of-type { margin-top: 2px; }
 .tabrow { display: flex; align-items: center; gap: 10px; padding: 10px 2px; border-bottom: 1px solid var(--line); }
 .tabrow span:first-child { flex: 1; }
 .tabrow .cnt { color: var(--text2); font-size: 13px; }
@@ -273,7 +275,7 @@ const ICON = {
   chev: '<svg class="chev CLS" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>'
 };
 
-const prefs = Object.assign({ hist: true, count: true, order: 'new_top' }, JSON.parse(get('futari_prefs') || '{}'));
+const prefs = Object.assign({ hist: true, count: true, order: 'new_top', group: true }, JSON.parse(get('futari_prefs') || '{}'));
 const st = { items: [], lists: JSON.parse(get('futari_lists') || 'null') || ['予定', '買い物リスト', 'やることリスト'], tab: get('futari_tab') || '予定', uc: get('futari_uc') || '', users: JSON.parse(get('futari_users') || 'null') || ['', ''], busy: 0, sel: null, showDone: get('futari_showdone') === '1' };
 
 function nameOf(code) { const i = CODES.indexOf(code); return i >= 0 ? st.users[i] : ''; }
@@ -370,7 +372,12 @@ function render() {
   let h = '';
   if (!open.length && !done.length) h = `<div class="empty">まだ何もない<br>右下の ＋ から追加してね</div>`;
   else if (!open.length) h = `<div class="empty">ぜんぶ済んだ</div>`;
-  h += open.map(card).join('');
+  const grouped = prefs.group && /買い物/.test(st.tab);
+  if (grouped && open.length) {
+    const shop = (o) => { const m = /[（(]([^（）()]+)[）)]\s*$/.exec(o.title); return m ? m[1].trim() : ''; };
+    const names = [...new Set(open.map(shop))].sort((a, b) => (a === '') - (b === '') || a.localeCompare(b, 'ja'));
+    h += names.map((n) => `<div class="grp">${n ? esc(n) : 'お店の指定なし'}</div>` + open.filter((o) => shop(o) === n).map(card).join('')).join('');
+  } else h += open.map(card).join('');
   if (done.length) {
     h += `<div class="sec"><button data-act="toggleDone">${ICON.chev.replace('CLS', st.showDone ? 'open' : '')}完了したもの ${done.length}</button><button class="more" data-act="doneMenu" aria-label="完了したものの操作">…</button></div>`;
     if (st.showDone) h += done.map(card).join('');
@@ -716,6 +723,7 @@ function openPrefs() {
     <div class="ph">表示の設定（このスマホだけ）</div>
     <div class="card2">
       <label class="sw"><span>入力するときに履歴を表示</span><input type="checkbox" id="pHist" ${prefs.hist ? 'checked' : ''}><i></i></label>
+      <label class="sw"><span>買い物はかっこ書きのお店でまとめる</span><input type="checkbox" id="pGroup" ${prefs.group ? 'checked' : ''}><i></i></label>
       <label class="sw"><span>タブに件数を表示</span><input type="checkbox" id="pCount" ${prefs.count ? 'checked' : ''}><i></i></label>
     </div>
     <div class="ph">表示の順番</div>
@@ -728,6 +736,7 @@ function openPrefs() {
     </div>
     <div class="info">ピン留めはどの順番でも一番上。日付のないものは日付順のときは下に並ぶ。</div>`;
   $('pHist').onchange = () => { prefs.hist = $('pHist').checked; savePrefs(); };
+  $('pGroup').onchange = () => { prefs.group = $('pGroup').checked; savePrefs(); render(); };
   $('pCount').onchange = () => { prefs.count = $('pCount').checked; savePrefs(); render(); };
   $('pOrder').onclick = (e) => { const b = e.target.closest('[data-o]'); if (!b) return; prefs.order = b.dataset.o; savePrefs(); [...$('pOrder').children].forEach((x) => x.classList.toggle('on', x === b)); render(); };
   $('sheet').classList.add('show');
