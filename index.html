@@ -719,7 +719,7 @@ function openSheet(o) {
     }
     const data = { list: curList, title, memo: $('sMemo').value, due, allDay: all, remindMin: dv ? Number($('sRem').value) : -1, pinned, assign: [...assign], user: me(), newPhotos: added.slice(), removePhotos: [...removed] };
     closeSheet();
-    if (isNew) call('addItem', [data]);
+    if (isNew) { const top = () => { window.scrollTo(0, 0); if (document.scrollingElement) document.scrollingElement.scrollTop = 0; }; setTimeout(top, 50); call('addItem', [data], () => setTimeout(top, 80)); }
     else call('updateItem', [o.id, data]);
   };
   $('sheet').classList.add('show');
