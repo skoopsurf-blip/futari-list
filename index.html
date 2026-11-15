@@ -123,6 +123,12 @@ header { position: sticky; top: 0; z-index: 4; background: var(--bg); padding: 1
 .asg.on::after { content: "✓"; position: absolute; top: -4px; left: -4px; width: 20px; height: 20px; border-radius: 50%; background: var(--accent); color: #fff; font-size: 12px; line-height: 20px; text-align: center; }
 .grp { font-size: 13px; font-weight: 700; color: var(--accent); margin: 14px 6px 6px; }
 .grp:first-of-type { margin-top: 2px; }
+#pin { position: fixed; inset: 0; z-index: 45; background: var(--bg); display: none; align-items: center; justify-content: center; padding: 20px; }
+#pin.show { display: flex; }
+#pin .panel { border-radius: 20px; max-width: 360px; display: flex; flex-direction: column; gap: 12px; }
+#pin input { width: 100%; border: 1px solid var(--line); border-radius: 12px; padding: 14px; font-size: 22px; letter-spacing: 6px; text-align: center; background: var(--card2); color: var(--text); }
+#pin input:focus { outline: none; border-color: var(--accent); }
+.pinmsg { font-size: 13px; color: var(--text2); line-height: 1.6; }
 .tabrow { display: flex; align-items: center; gap: 10px; padding: 10px 2px; border-bottom: 1px solid var(--line); }
 .tabrow span:first-child { flex: 1; }
 .tabrow .cnt { color: var(--text2); font-size: 13px; }
@@ -210,6 +216,7 @@ main { padding: 10px 12px calc(100px + var(--safe-b)); }
 <div id="ask"><div class="panel"><h2 id="asktitle">どちらが使ってる？</h2><div style="font-size:13px;color:#9A9A9F">この端末で一度選べば覚えておく</div><div class="whos" id="askwho"></div></div></div>
 <div id="cf"><div class="panel"><div id="cfmsg" style="font-size:16px;line-height:1.6"></div><div class="acts"><button class="btn sub" id="cfno">やめる</button><button class="btn del" id="cfyes">消す</button></div></div></div>
 <div id="viewer"></div>
+<div id="pin"></div>
 <div id="toast"></div>
 
 <script>
@@ -253,7 +260,7 @@ if (!KEY_ && LOCAL) {
 function request(fn, args) {
   if (window.__mock) return new Promise((ok, ng) => setTimeout(() => { try { ok(api[fn](...args)); } catch (e) { ng(e); } }, 150));
   if (!KEY_) return Promise.reject(new Error('鍵つきのURLで開いてね'));
-  return fetch(API_URL, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify({ k: KEY_, fn, args }) })
+  return fetch(API_URL, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify({ k: KEY_, fn, args, pin: get('futari_pin') || '' }) })
     .then((r) => r.json()).then((j) => { if (!j.ok) throw new Error(j.error || 'エラー'); return j.data; });
 }
 
@@ -307,7 +314,9 @@ function call(fn, args, done) {
       done && done(true);
     }, (e) => {
       end();
-      toast((e && e.message) || '通信できなかった');
+      const m = (e && e.message) || '';
+      if (/^PIN_(SETUP|WRONG|LOCKED)$/.test(m)) { pinScreen(m); done && done(false); return; }
+      toast(m || '通信できなかった');
       done && done(false);
       if (fn !== 'getAll') load();
     });
@@ -716,6 +725,47 @@ function openSheet(o) {
   $('sheet').classList.add('show');
   if (isNew) setTimeout(() => $('sTitle').focus(), 50);
 }
+function pinScreen(kind) {
+  if (kind === 'PIN_WRONG' && get('futari_pin')) { try { localStorage.removeItem('futari_pin'); } catch (e) {} }
+  const setup = kind === 'PIN_SETUP';
+  $('pin').innerHTML = `<div class="panel">
+    <h2>${setup ? '暗証番号を決める' : '暗証番号を入れて'}</h2>
+    <div class="pinmsg">${kind === 'PIN_LOCKED' ? '間違いが続いたので1時間止めています。少し待ってから入れてね' : setup ? '4〜8桁の数字。2人で同じ番号を使う。このスマホでは一度入れたら覚えておく' : kind === 'PIN_WRONG' && $('pin')._tried ? '番号が違うみたい' : 'このスマホで最初の1回だけ'}</div>
+    <input id="pin1" type="password" inputmode="numeric" pattern="[0-9]*" maxlength="8" autocomplete="off" placeholder="暗証番号">
+    ${setup ? '<input id="pin2" type="password" inputmode="numeric" pattern="[0-9]*" maxlength="8" autocomplete="off" placeholder="もう一度">' : ''}
+    <button class="btn" id="pinOk">${setup ? '決める' : '開く'}</button></div>`;
+  $('pin').classList.add('show');
+  setTimeout(() => $('pin1').focus(), 50);
+  $('pinOk').onclick = () => {
+    const a = $('pin1').value.trim();
+    if (!/^[0-9]{4,8}$/.test(a)) { toast('4〜8桁の数字にしてね'); return; }
+    if (setup) {
+      if (a !== $('pin2').value.trim()) { toast('2回の番号が違う'); return; }
+      request('setPin', [a]).then(() => { put('futari_pin', a); $('pin').classList.remove('show'); load(); }).catch((e) => toast(e.message));
+    } else {
+      put('futari_pin', a); $('pin')._tried = true; $('pin').classList.remove('show'); load();
+    }
+  };
+  $('pin1').onkeydown = (e) => { if (e.key === 'Enter') $('pinOk').click(); };
+}
+function changePin() {
+  closeSheet();
+  $('pin').innerHTML = `<div class="panel"><h2>暗証番号を変える</h2><div class="pinmsg">新しい番号は、もう1人のスマホでも入れ直しになる</div>
+    <input id="pinOld" type="password" inputmode="numeric" maxlength="8" placeholder="今の番号">
+    <input id="pin1" type="password" inputmode="numeric" maxlength="8" placeholder="新しい番号（4〜8桁）">
+    <input id="pin2" type="password" inputmode="numeric" maxlength="8" placeholder="新しい番号をもう一度">
+    <div class="acts"><button class="btn sub" id="pinNo">やめる</button><button class="btn" id="pinOk">変える</button></div></div>`;
+  $('pin').classList.add('show');
+  $('pinNo').onclick = () => $('pin').classList.remove('show');
+  $('pinOk').onclick = () => {
+    const o = $('pinOld').value.trim(), a = $('pin1').value.trim();
+    if (!/^[0-9]{4,8}$/.test(a)) { toast('4〜8桁の数字にしてね'); return; }
+    if (a !== $('pin2').value.trim()) { toast('2回の番号が違う'); return; }
+    const prev = get('futari_pin'); put('futari_pin', o);
+    request('setPin', [a]).then(() => { put('futari_pin', a); $('pin').classList.remove('show'); toast('暗証番号を変えた'); })
+      .catch((e) => { put('futari_pin', prev || ''); toast(e.message === 'PIN_WRONG' ? '今の番号が違う' : e.message); });
+  };
+}
 function savePrefs() { put('futari_prefs', JSON.stringify(prefs)); }
 function openPrefs() {
   const radio = (v, label) => `<button type="button" class="opt ${prefs.order === v ? 'on' : ''}" data-o="${v}"><span class="rd"></span>${label}</button>`;
@@ -734,7 +784,9 @@ function openPrefs() {
       ${radio('date', '日付順（近い日が上）')}
       ${radio('date_desc', '日付順（未来→過去）')}
     </div>
-    <div class="info">ピン留めはどの順番でも一番上。日付のないものは日付順のときは下に並ぶ。</div>`;
+    <div class="info">ピン留めはどの順番でも一番上。日付のないものは日付順のときは下に並ぶ。</div>
+    ${window.__mock ? '' : '<div class="card2" style="margin-top:14px"><button type="button" class="opt" id="pChangePin">暗証番号を変える</button></div>'}`;
+  if ($('pChangePin')) $('pChangePin').onclick = changePin;
   $('pHist').onchange = () => { prefs.hist = $('pHist').checked; savePrefs(); };
   $('pGroup').onchange = () => { prefs.group = $('pGroup').checked; savePrefs(); render(); };
   $('pCount').onchange = () => { prefs.count = $('pCount').checked; savePrefs(); render(); };
