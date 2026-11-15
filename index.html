@@ -725,7 +725,9 @@ function openSheet(o) {
   $('sheet').classList.add('show');
   if (isNew) setTimeout(() => $('sTitle').focus(), 50);
 }
+function pinOpen() { return $('pin').classList.contains('show'); }
 function pinScreen(kind) {
+  if (pinOpen()) { if (kind === 'PIN_LOCKED') toast('間違いが続いたので1時間止めています'); return; }
   if (kind === 'PIN_WRONG' && get('futari_pin')) { try { localStorage.removeItem('futari_pin'); } catch (e) {} }
   const setup = kind === 'PIN_SETUP';
   $('pin').innerHTML = `<div class="panel">
@@ -741,7 +743,9 @@ function pinScreen(kind) {
     if (!/^[0-9]{4,8}$/.test(a)) { toast('4〜8桁の数字にしてね'); return; }
     if (setup) {
       if (a !== $('pin2').value.trim()) { toast('2回の番号が違う'); return; }
-      request('setPin', [a]).then(() => { put('futari_pin', a); $('pin').classList.remove('show'); load(); }).catch((e) => toast(e.message));
+      $('pinOk').disabled = true; $('pinOk').textContent = '保存中…';
+      request('setPin', [a]).then(() => { put('futari_pin', a); $('pin').classList.remove('show'); load(); })
+        .catch((e) => { $('pinOk').disabled = false; $('pinOk').textContent = '決める'; toast('保存できなかった：' + e.message); });
     } else {
       put('futari_pin', a); $('pin')._tried = true; $('pin').classList.remove('show'); load();
     }
@@ -819,8 +823,8 @@ document.getElementById('viewer').addEventListener('click', () => $('viewer').cl
 function closeSheet() { $('sheet').classList.remove('show'); }
 $('sheet').addEventListener('click', (e) => { if (e.target.id === 'sheet') closeSheet(); });
 
-document.addEventListener('visibilitychange', () => { if (!document.hidden) load(); });
-setInterval(() => { if (!document.hidden && !st.busy && !dragging && !$('sheet').classList.contains('show')) load(); }, 20000);
+document.addEventListener('visibilitychange', () => { if (!document.hidden && !pinOpen()) load(); });
+setInterval(() => { if (!document.hidden && !st.busy && !dragging && !pinOpen() && !$('sheet').classList.contains('show')) load(); }, 20000);
 
 // 人ごとの URL（#k=鍵&u=t が1人目・u=a が2人目）で開けば、名前を選ばなくても誰が足したか分かる
 if (HASH.u && CODES.includes(HASH.u)) st.uc = HASH.u;
