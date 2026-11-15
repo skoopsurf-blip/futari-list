@@ -283,7 +283,7 @@ const ICON = {
 };
 
 const prefs = Object.assign({ hist: true, count: true, order: 'new_top', group: true }, JSON.parse(get('futari_prefs') || '{}'));
-const st = { items: [], lists: JSON.parse(get('futari_lists') || 'null') || ['予定', '買い物リスト', 'やることリスト'], tab: get('futari_tab') || '予定', uc: get('futari_uc') || '', users: JSON.parse(get('futari_users') || 'null') || ['', ''], busy: 0, sel: null, showDone: get('futari_showdone') === '1' };
+const st = { items: [], lists: JSON.parse(get('futari_lists') || 'null') || ['予定', '買い物リスト', 'やることリスト'], tab: get('futari_tab') || '予定', uc: get('futari_uc') || '', users: JSON.parse(get('futari_users') || 'null') || ['', ''], busy: 0, sel: null, showDone: get('futari_showdone') !== '0' };
 
 function nameOf(code) { const i = CODES.indexOf(code); return i >= 0 ? st.users[i] : ''; }
 function me() { return nameOf(st.uc); }
