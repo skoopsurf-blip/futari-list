@@ -114,6 +114,13 @@ header { position: sticky; top: 0; z-index: 4; background: var(--bg); padding: 1
 .memo a.lk { color: #7FB8FF; text-decoration: underline; word-break: break-all; }
 .item { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
 .item.lifting { position: relative; z-index: 5; transform-origin: center; box-shadow: 0 10px 24px rgba(0,0,0,.55), inset 0 0 0 2px var(--accent); background: #26262A; }
+.avs { display: flex; flex: none; }
+.avs .av + .av { margin-left: -10px; }
+.assign { flex: 1; display: flex; gap: 14px; }
+.asg { border: 0; background: none; color: var(--text2); display: flex; flex-direction: column; align-items: center; gap: 4px; font-size: 12px; position: relative; opacity: .55; }
+.asg .av { width: 44px; height: 44px; }
+.asg.on { opacity: 1; color: var(--text); }
+.asg.on::after { content: "✓"; position: absolute; top: -4px; left: -4px; width: 20px; height: 20px; border-radius: 50%; background: var(--accent); color: #fff; font-size: 12px; line-height: 20px; text-align: center; }
 .tabrow { display: flex; align-items: center; gap: 10px; padding: 10px 2px; border-bottom: 1px solid var(--line); }
 .tabrow span:first-child { flex: 1; }
 .tabrow .cnt { color: var(--text2); font-size: 13px; }
@@ -226,8 +233,8 @@ if (!KEY_ && LOCAL) {
   const all = () => ({ items: load(), lists: lists(), users: ['ひとり目', 'ふたり目'], now: new Date().toISOString() });
   api = {
     getAll: () => all(),
-    addItem: (d) => { if (!d.title || !d.title.trim()) throw new Error('内容を入れてください'); const a = load(); a.push({ id: String(Date.now() + Math.random()), list: d.list, title: d.title.trim(), memo: d.memo || '', addedBy: d.user, addedAt: new Date().toISOString(), due: d.due ? new Date(d.due).toISOString() : '', allDay: !!d.allDay && !!d.due, remindMin: d.due ? Number(d.remindMin) : -1, pinned: !!d.pinned, photos: psave(d.newPhotos), done: false, doneBy: '', doneAt: '' }); save(a); return all(); },
-    updateItem: (id, d) => { const a = load(); const o = a.find(x => x.id === id); if (!o) throw new Error('項目が見つかりません'); Object.assign(o, { list: d.list, title: d.title.trim(), memo: d.memo || '', due: d.due ? new Date(d.due).toISOString() : '', allDay: !!d.allDay && !!d.due, remindMin: d.due ? Number(d.remindMin) : -1, pinned: !!d.pinned, photos: (o.photos || []).filter((x) => !(d.removePhotos || []).includes(x)).concat(psave(d.newPhotos)) }); save(a); return all(); },
+    addItem: (d) => { if (!d.title || !d.title.trim()) throw new Error('内容を入れてください'); const a = load(); a.push({ id: String(Date.now() + Math.random()), list: d.list, title: d.title.trim(), memo: d.memo || '', addedBy: d.user, addedAt: new Date().toISOString(), due: d.due ? new Date(d.due).toISOString() : '', allDay: !!d.allDay && !!d.due, remindMin: d.due ? Number(d.remindMin) : -1, pinned: !!d.pinned, assign: d.assign || [], photos: psave(d.newPhotos), done: false, doneBy: '', doneAt: '' }); save(a); return all(); },
+    updateItem: (id, d) => { const a = load(); const o = a.find(x => x.id === id); if (!o) throw new Error('項目が見つかりません'); Object.assign(o, { list: d.list, title: d.title.trim(), memo: d.memo || '', due: d.due ? new Date(d.due).toISOString() : '', allDay: !!d.allDay && !!d.due, remindMin: d.due ? Number(d.remindMin) : -1, pinned: !!d.pinned, assign: d.assign || [], photos: (o.photos || []).filter((x) => !(d.removePhotos || []).includes(x)).concat(psave(d.newPhotos)) }); save(a); return all(); },
     setDone: (id, done, user) => { const a = load(); const o = a.find(x => x.id === id); if (!o) throw new Error('項目が見つかりません'); o.done = !!done; o.doneBy = done ? user : ''; o.doneAt = done ? new Date().toISOString() : ''; save(a); return all(); },
     deleteItem: (id) => { save(load().filter(x => x.id !== id)); return all(); },
     clearDone: (list) => { save(load().filter(x => !(x.list === list && x.done))); return all(); },
@@ -271,6 +278,11 @@ const st = { items: [], lists: JSON.parse(get('futari_lists') || 'null') || ['�
 
 function nameOf(code) { const i = CODES.indexOf(code); return i >= 0 ? st.users[i] : ''; }
 function me() { return nameOf(st.uc); }
+function assignAv(o, edit) {
+  const a = (o.assign || []).filter((n) => st.users.includes(n));
+  if (!a.length) return '';
+  return `<span class="avs" ${edit ? `data-edit="${esc(o.id)}"` : ''} title="${esc(a.join('・'))}">${a.map(avOf).join('')}</span>`;
+}
 function avOf(name) { const i = st.users.indexOf(name); return i >= 0 ? AVS[i] : ''; }
 function get(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
 function put(k, v) { try { localStorage.setItem(k, v); } catch (e) {} }
@@ -380,7 +392,7 @@ function card(o) {
     return `<div class="item sel ${st.sel.has(o.id) ? 'picked' : ''} ${o.done ? 'done' : ''}" data-pick="${esc(o.id)}">
     <span class="pk">${ICON.check}</span>
     <div class="body"><div class="ttl">${esc(o.title)}</div>${meta}</div>
-    ${/買い物/.test(o.list) ? "" : `<span>${avOf(o.addedBy)}</span>`}</div>`;
+    ${assignAv(o, false)}</div>`;
   }
   return `<div class="item ${o.done ? 'done' : ''}" ${o.done ? '' : `data-drag="${esc(o.id)}"`}>
     <button class="chk" data-chk="${esc(o.id)}" aria-label="${o.done ? '済みを戻す' : '済みにする'}">${ICON.check}</button>
@@ -390,7 +402,7 @@ function card(o) {
       ${meta}
       ${(o.photos || []).length ? `<div class="pmark">${SVG_IMG}${o.photos.length}</div>` : ''}
     </div>
-    ${/買い物/.test(o.list) ? "" : `<span data-edit="${esc(o.id)}" title="${esc(o.addedBy)}が追加・${ago(o.addedAt)}">${avOf(o.addedBy)}</span>`}</div>`;
+    ${assignAv(o, true)}</div>`;
 }
 
 function chooseUser(then) {
@@ -526,6 +538,7 @@ const SVG_PIN = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stro
 const SVG_MENU = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg>';
 const SVG_IMG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 16l5-5 4 4 3-3 6 6"/><circle cx="15.5" cy="8.5" r="1.5"/></svg>';
 const SVG_CAM = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg>';
+const SVG_FACE = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M5 9c3-4 11-4 14 0"/><circle cx="9" cy="13" r=".8" fill="currentColor"/><circle cx="15" cy="13" r=".8" fill="currentColor"/></svg>';
 const SVG_UP = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5M6 11l6-6 6 6"/></svg>';
 function whenOf(iso) {
   const d = new Date(iso); if (isNaN(d)) return '';
@@ -581,6 +594,11 @@ function openSheet(o) {
       <button type="button" class="lnk" id="sDayBtn"></button>
       <button type="button" class="chip" data-q="0">今日</button><button type="button" class="chip" data-q="1">明日</button>
     </div>
+    <div class="line">
+      <span class="ic">${SVG_FACE}</span>
+      <div class="assign" id="sAssign">${st.users.map((u, i) => `<button type="button" class="asg" data-as="${esc(u)}">${AVS[i]}<span>${esc(u)}</span></button>`).join('')}</div>
+      <button type="button" class="chip" id="sAll2">全員</button>
+    </div>
     <div id="sDetail" class="detail">
       <div class="row"><input type="date" id="sDate" value="${dateV}"><input type="time" id="sTime" value="${timeV}" ${allDay ? 'disabled' : ''}></div>
       <div class="chkline" style="margin-top:10px"><input type="checkbox" id="sAll" ${allDay ? 'checked' : ''}><label for="sAll">終日（時刻なし）</label></div>
@@ -627,6 +645,11 @@ function openSheet(o) {
     syncDay();
   };
   let pinned = o ? !!o.pinned : false;
+  const assign = new Set(o ? (o.assign || []) : []);
+  const syncAssign = () => $('sAssign').querySelectorAll('[data-as]').forEach((b) => b.classList.toggle('on', assign.has(b.dataset.as)));
+  $('sAssign').onclick = (e) => { const b = e.target.closest('[data-as]'); if (!b) return; const n = b.dataset.as; assign.has(n) ? assign.delete(n) : assign.add(n); syncAssign(); };
+  $('sAll2').onclick = () => { const all = st.users.every((u) => assign.has(u)); st.users.forEach((u) => all ? assign.delete(u) : assign.add(u)); syncAssign(); };
+  syncAssign();
   const oldPhotos = o ? (o.photos || []).slice() : [];
   const removed = new Set(); const added = [];
   const drawThumbs = () => {
@@ -678,7 +701,7 @@ function openSheet(o) {
       if (all) due = new Date(y, m - 1, dd).toISOString();
       else { const tv = $('sTime').value || '09:00'; const [hh, mm] = tv.split(':').map(Number); due = new Date(y, m - 1, dd, hh, mm).toISOString(); }
     }
-    const data = { list: curList, title, memo: $('sMemo').value, due, allDay: all, remindMin: dv ? Number($('sRem').value) : -1, pinned, user: me(), newPhotos: added.slice(), removePhotos: [...removed] };
+    const data = { list: curList, title, memo: $('sMemo').value, due, allDay: all, remindMin: dv ? Number($('sRem').value) : -1, pinned, assign: [...assign], user: me(), newPhotos: added.slice(), removePhotos: [...removed] };
     closeSheet();
     if (isNew) call('addItem', [data]);
     else call('updateItem', [o.id, data]);
