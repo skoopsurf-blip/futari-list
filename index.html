@@ -67,6 +67,37 @@ header { position: sticky; top: 0; z-index: 4; background: var(--bg); padding: 1
 .hrow .hk { flex: none; }
 .hrow .hn { flex: 1; color: var(--text); }
 .hrow .ht { flex: none; }
+.tools { display: flex; justify-content: flex-end; margin: -2px 0 6px; }
+.tools button { border: 0; background: none; color: var(--text); padding: 4px 4px; }
+.tools svg { width: 24px; height: 24px; display: block; }
+.ph { font-size: 13px; color: var(--text2); margin: 16px 4px 8px; }
+.card2 { background: var(--card2); border-radius: 16px; overflow: hidden; }
+.sw { display: flex; align-items: center; justify-content: space-between; padding: 14px 16px; border-bottom: 1px solid var(--line); font-size: 15px; }
+.sw:last-child { border-bottom: 0; }
+.sw input { display: none; }
+.sw i { width: 50px; height: 30px; border-radius: 15px; background: #3A3A3E; position: relative; transition: background .2s; flex: none; }
+.sw i::after { content: ""; position: absolute; top: 3px; left: 3px; width: 24px; height: 24px; border-radius: 50%; background: #fff; transition: left .2s; }
+.sw input:checked + i { background: var(--accent); }
+.sw input:checked + i::after { left: 23px; }
+.opt { display: flex; align-items: center; gap: 14px; width: 100%; border: 0; border-bottom: 1px solid var(--line); background: none; color: var(--text); font-size: 15px; padding: 14px 16px; text-align: left; }
+.opt:last-child { border-bottom: 0; }
+.opt .rd { width: 20px; height: 20px; border-radius: 50%; border: 2px solid #8A8580; flex: none; }
+.opt.on { color: var(--accent); }
+.opt.on .rd { border-color: var(--accent); box-shadow: inset 0 0 0 4px var(--card2); background: var(--accent); }
+.tools { gap: 14px; align-items: center; }
+.tools .txt { color: var(--text); font-size: 15px; }
+.tools #selEnd { color: var(--accent); font-weight: 700; }
+.item.sel { cursor: pointer; }
+.item .pk, #selAll .pk { flex: none; width: 24px; height: 24px; border-radius: 50%; border: 2px solid #8A8580; display: flex; align-items: center; justify-content: center; }
+.item .pk svg, #selAll .pk svg { width: 13px; height: 13px; color: transparent; }
+.item.picked .pk, #selAll.on .pk { background: var(--accent); border-color: var(--accent); }
+.item.picked .pk svg, #selAll.on .pk svg { color: #fff; }
+.item.picked { box-shadow: inset 0 0 0 2px var(--accent); }
+#selbar { position: fixed; left: 0; right: 0; bottom: 0; z-index: 6; display: none; background: #1B1B1D; border-top: 1px solid var(--line); border-radius: 18px 18px 0 0; padding: 12px 10px calc(14px + var(--safe-b)); justify-content: space-around; }
+#selbar.show { display: flex; }
+#selbar button { flex: 1; border: 0; background: none; color: var(--text); font-size: 13px; display: flex; flex-direction: column; align-items: center; gap: 6px; }
+#selbar button svg { width: 26px; height: 26px; }
+#selbar button:disabled { opacity: .35; }
 .tabrow { display: flex; align-items: center; gap: 10px; padding: 10px 2px; border-bottom: 1px solid var(--line); }
 .tabrow span:first-child { flex: 1; }
 .tabrow .cnt { color: var(--text2); font-size: 13px; }
@@ -145,6 +176,11 @@ main { padding: 10px 12px calc(100px + var(--safe-b)); }
   <button class="fab" id="fab" aria-label="追加"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></button>
 </div>
 
+<div id="selbar">
+  <button id="selAll"><span class="pk"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></span>すべて選択</button>
+  <button id="selMove"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M3 6h7l2 2h9v11H3z"/></svg>移動</button>
+  <button id="selDel"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13M10 11v6M14 11v6"/></svg>削除</button>
+</div>
 <div id="sheet"><div class="panel" id="panel"></div></div>
 <div id="ask"><div class="panel"><h2 id="asktitle">どちらが使ってる？</h2><div style="font-size:13px;color:#9A9A9F">この端末で一度選べば覚えておく</div><div class="whos" id="askwho"></div></div></div>
 <div id="cf"><div class="panel"><div id="cfmsg" style="font-size:16px;line-height:1.6"></div><div class="acts"><button class="btn sub" id="cfno">やめる</button><button class="btn del" id="cfyes">消す</button></div></div></div>
@@ -176,6 +212,8 @@ if (!KEY_ && LOCAL) {
     deleteItem: (id) => { save(load().filter(x => x.id !== id)); return all(); },
     clearDone: (list) => { save(load().filter(x => !(x.list === list && x.done))); return all(); },
     addList: (n) => { n = String(n || '').trim(); if (!n) throw new Error('タブの名前を入れてください'); const a = lists(); if (a.includes(n)) throw new Error('同じ名前のタブがもうあります'); a.push(n); localStorage.setItem(LK, JSON.stringify(a)); return all(); },
+    deleteItems: (ids) => { save(load().filter(x => !ids.includes(x.id))); return all(); },
+    moveItems: (ids, list) => { const a = load(); a.forEach(x => { if (ids.includes(x.id)) x.list = list; }); save(a); return all(); },
     deleteList: (n) => { if (load().some(x => x.list === n)) throw new Error('項目が残っているタブは消せません（先に項目を消してください）'); localStorage.setItem(LK, JSON.stringify(lists().filter(x => x !== n))); return all(); }
   };
   window.__mock = true;
@@ -205,7 +243,8 @@ const ICON = {
   chev: '<svg class="chev CLS" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>'
 };
 
-const st = { items: [], lists: JSON.parse(get('futari_lists') || 'null') || ['予定', '買い物リスト', 'やることリスト'], tab: get('futari_tab') || '予定', uc: get('futari_uc') || '', users: JSON.parse(get('futari_users') || 'null') || ['', ''], busy: 0, showDone: get('futari_showdone') === '1' };
+const prefs = Object.assign({ hist: true, count: true, order: 'new_top' }, JSON.parse(get('futari_prefs') || '{}'));
+const st = { items: [], lists: JSON.parse(get('futari_lists') || 'null') || ['予定', '買い物リスト', 'やることリスト'], tab: get('futari_tab') || '予定', uc: get('futari_uc') || '', users: JSON.parse(get('futari_users') || 'null') || ['', ''], busy: 0, sel: null, showDone: get('futari_showdone') === '1' };
 
 function nameOf(code) { const i = CODES.indexOf(code); return i >= 0 ? st.users[i] : ''; }
 function me() { return nameOf(st.uc); }
@@ -264,20 +303,24 @@ function ago(iso) {
 function remindOn(o) { return !!o.due && o.remindMin >= 0; }
 
 function sortItems(a) {
-  return a.slice().sort((x, y) => {
-    if (!!x.pinned !== !!y.pinned) return x.pinned ? -1 : 1;
-    if (x.due && y.due) return new Date(x.due) - new Date(y.due);
+  const t = (x) => new Date(x).getTime() || 0;
+  const byDue = (dir) => (x, y) => {
+    if (x.due && y.due) return dir * (t(x.due) - t(y.due));
     if (x.due) return -1; if (y.due) return 1;
-    return new Date(y.addedAt) - new Date(x.addedAt);
-  });
+    return t(y.addedAt) - t(x.addedAt);
+  };
+  const cmp = prefs.order === 'new_bottom' ? (x, y) => t(x.addedAt) - t(y.addedAt)
+    : prefs.order === 'date' ? byDue(1)
+    : prefs.order === 'date_desc' ? byDue(-1)
+    : (x, y) => t(y.addedAt) - t(x.addedAt);
+  return a.slice().sort((x, y) => (!!x.pinned !== !!y.pinned) ? (x.pinned ? -1 : 1) : cmp(x, y));
 }
-
 function render() {
   $('me').innerHTML = me() ? `${avOf(me())}${esc(me())}` : '名前を選ぶ';
   if (st.lists.indexOf(st.tab) < 0) st.tab = st.lists[0];
   $('tabs').innerHTML = st.lists.map((l) => {
     const n = st.items.filter((o) => o.list === l && !o.done).length;
-    return `<button data-tab="${esc(l)}" class="${st.tab === l ? 'on' : ''}">${esc(l)}${n ? `<span class="n">${n}</span>` : ''}</button>`;
+    return `<button data-tab="${esc(l)}" class="${st.tab === l ? 'on' : ''}">${esc(l)}${n && prefs.count ? `<span class="n">${n}</span>` : ''}</button>`;
   }).join('');
   const onTab = $('tabs').querySelector('.on');
   if (onTab) { const t = $('tabs'); const l = onTab.offsetLeft - t.offsetLeft, r = l + onTab.offsetWidth; if (l < t.scrollLeft) t.scrollLeft = l - 8; else if (r > t.scrollLeft + t.clientWidth) t.scrollLeft = r - t.clientWidth + 8; }
@@ -292,12 +335,25 @@ function render() {
     h += `<div class="sec"><button data-act="toggleDone">${ICON.chev.replace('CLS', st.showDone ? 'open' : '')}完了したもの ${done.length}</button>${st.showDone ? '<button class="clr" data-act="clearDone">全部消す</button>' : ''}</div>`;
     if (st.showDone) h += done.map(card).join('');
   }
-  $('main').innerHTML = h;
+  $('main').innerHTML = `<div class="tools">${st.sel ? '<button id="selEnd" class="txt">キャンセル</button>' : '<button id="selStart" class="txt">選択</button><button id="menu" aria-label="表示の設定">' + SVG_MENU + '</button>'}</div>` + h;
+  $('selbar').classList.toggle('show', !!st.sel);
+  $('fab').style.display = st.sel ? 'none' : '';
+  if (st.sel) {
+    const ids = mine.map((o) => o.id); const n = ids.filter((id) => st.sel.has(id)).length;
+    $('selAll').classList.toggle('on', n > 0 && n === ids.length);
+    $('selMove').disabled = $('selDel').disabled = n === 0;
+  }
 }
 function card(o) {
   const due = o.due ? `<span class="due ${isLate(o) ? 'late' : ''}">${fmtDue(o)}${remindOn(o) ? ICON.bell : ''}</span>` : '';
   const sub = o.done && o.doneBy ? `<span class="sub">${esc(o.doneBy)}が済み</span>` : '';
   const meta = due || sub ? `<div class="meta">${due}${sub}</div>` : '';
+  if (st.sel) {
+    return `<div class="item sel ${st.sel.has(o.id) ? 'picked' : ''} ${o.done ? 'done' : ''}" data-pick="${esc(o.id)}">
+    <span class="pk">${ICON.check}</span>
+    <div class="body"><div class="ttl">${esc(o.title)}</div>${meta}</div>
+    <span>${avOf(o.addedBy)}</span></div>`;
+  }
   return `<div class="item ${o.done ? 'done' : ''}">
     <button class="chk" data-chk="${esc(o.id)}" aria-label="${o.done ? '済みを戻す' : '済みにする'}">${ICON.check}</button>
     <div class="body" data-edit="${esc(o.id)}">
@@ -322,8 +378,9 @@ $('askwho').addEventListener('click', (e) => {
 $('ask').addEventListener('click', (e) => { if (e.target.id === 'ask' && me()) $('ask').classList.remove('show'); });
 
 $('me').addEventListener('click', () => chooseUser(null));
-$('tabs').addEventListener('click', (e) => { const b = e.target.closest('[data-tab]'); if (!b) return; st.tab = b.dataset.tab; put('futari_tab', st.tab); render(); window.scrollTo(0, 0); });
+$('tabs').addEventListener('click', (e) => { const b = e.target.closest('[data-tab]'); if (!b) return; st.tab = b.dataset.tab; put('futari_tab', st.tab); st.sel = null; render(); window.scrollTo(0, 0); });
 $('main').addEventListener('click', (e) => {
+  if (st.sel) return;
   const c = e.target.closest('[data-chk]');
   if (c) {
     const o = st.items.find((x) => x.id === c.dataset.chk); if (!o) return;
@@ -353,12 +410,35 @@ $('addtab').addEventListener('click', openTabs);
     st.tab = st.lists[j]; put('futari_tab', st.tab); render(); window.scrollTo(0, 0);
   }, { passive: true });
 })();
+$('main').addEventListener('click', (e) => {
+  if (e.target.closest('#menu')) { openPrefs(); return; }
+  if (e.target.closest('#selStart')) { st.sel = new Set(); render(); return; }
+  if (e.target.closest('#selEnd')) { st.sel = null; render(); return; }
+  const pk = e.target.closest('[data-pick]');
+  if (pk && st.sel) { const id = pk.dataset.pick; st.sel.has(id) ? st.sel.delete(id) : st.sel.add(id); render(); }
+}, true);
+$('selAll').addEventListener('click', () => {
+  const ids = st.items.filter((o) => o.list === st.tab).map((o) => o.id);
+  const all = ids.every((id) => st.sel.has(id));
+  st.sel = new Set(all ? [] : ids); render();
+});
+$('selDel').addEventListener('click', () => {
+  const ids = [...st.sel]; if (!ids.length) return;
+  ask(ids.length + '件を消す？<br>（元に戻せない）', () => { st.sel = null; call('deleteItems', [ids]); });
+});
+$('selMove').addEventListener('click', () => {
+  const ids = [...st.sel]; if (!ids.length) return;
+  $('panel').innerHTML = `<div class="grab"></div><div class="ph">${ids.length}件をどのタブへ移す？</div><div class="card2">${st.lists.filter((l) => l !== st.tab).map((l) => `<button type="button" class="opt" data-mv="${esc(l)}">${esc(l)}</button>`).join('')}</div>`;
+  $('panel').querySelectorAll('[data-mv]').forEach((b) => b.onclick = () => { closeSheet(); st.sel = null; call('moveItems', [ids, b.dataset.mv]); });
+  $('sheet').classList.add('show');
+});
 $('fab').addEventListener('click', () => needUser(() => openSheet(null)));
 
 function pad(n) { return String(n).padStart(2, '0'); }
 const SVG_ALARM = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="13" r="7.5"/><path d="M12 9.5V13l2.5 2M4.5 4.5 2.8 6.2M19.5 4.5l1.7 1.7"/></svg>';
 const SVG_MEMO = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16v11l-5 5H4z"/><path d="M15 20v-5h5M8 9h8M8 13h5"/></svg>';
 const SVG_PIN = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 3h6l-1 6 4 3v2H6v-2l4-3z"/><path d="M12 14v7"/></svg>';
+const SVG_MENU = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg>';
 const SVG_UP = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5M6 11l6-6 6 6"/></svg>';
 function whenOf(iso) {
   const d = new Date(iso); if (isNaN(d)) return '';
@@ -379,7 +459,8 @@ function openSheet(o) {
   $('panel').innerHTML = `
     <div class="grab"></div>
     ${isNew ? '' : `<div class="seg" id="sList" style="margin-bottom:6px">${st.lists.map((l) => `<button type="button" data-v="${esc(l)}" class="${l === list ? 'on' : ''}">${esc(l)}</button>`).join('')}</div>`}
-    <input id="sTitle" class="big" value="${o ? esc(o.title) : ''}" maxlength="200" placeholder="${placeholderOf(list)}" enterkeyhint="send" autocomplete="off">
+    <input id="sTitle" class="big" value="${o ? esc(o.title) : ''}" maxlength="200" placeholder="${placeholderOf(list)}" enterkeyhint="send" autocomplete="off" ${isNew && prefs.hist ? 'list="sHist"' : ''}>
+    ${isNew && prefs.hist ? `<datalist id="sHist">${[...new Set(st.items.filter((x) => x.list === list).sort((a, b) => new Date(b.addedAt) - new Date(a.addedAt)).map((x) => x.title))].slice(0, 30).map((t) => `<option value="${esc(t)}">`).join('')}</datalist>` : ''}
     <div class="line">
       <span class="ic">${SVG_ALARM}</span>
       <button type="button" class="lnk" id="sDayBtn"></button>
@@ -461,6 +542,28 @@ function openSheet(o) {
   };
   $('sheet').classList.add('show');
   if (isNew) setTimeout(() => $('sTitle').focus(), 50);
+}
+function savePrefs() { put('futari_prefs', JSON.stringify(prefs)); }
+function openPrefs() {
+  const radio = (v, label) => `<button type="button" class="opt ${prefs.order === v ? 'on' : ''}" data-o="${v}"><span class="rd"></span>${label}</button>`;
+  $('panel').innerHTML = `<div class="grab"></div>
+    <div class="ph">表示の設定（このスマホだけ）</div>
+    <div class="card2">
+      <label class="sw"><span>入力するときに履歴を表示</span><input type="checkbox" id="pHist" ${prefs.hist ? 'checked' : ''}><i></i></label>
+      <label class="sw"><span>タブに件数を表示</span><input type="checkbox" id="pCount" ${prefs.count ? 'checked' : ''}><i></i></label>
+    </div>
+    <div class="ph">表示の順番</div>
+    <div class="card2" id="pOrder">
+      ${radio('new_top', '新着順（新しいものが上）')}
+      ${radio('new_bottom', '新着順（新しいものが下）')}
+      ${radio('date', '日付順（近い日が上）')}
+      ${radio('date_desc', '日付順（未来→過去）')}
+    </div>
+    <div class="info">ピン留めはどの順番でも一番上。日付のないものは日付順のときは下に並ぶ。</div>`;
+  $('pHist').onchange = () => { prefs.hist = $('pHist').checked; savePrefs(); };
+  $('pCount').onchange = () => { prefs.count = $('pCount').checked; savePrefs(); render(); };
+  $('pOrder').onclick = (e) => { const b = e.target.closest('[data-o]'); if (!b) return; prefs.order = b.dataset.o; savePrefs(); [...$('pOrder').children].forEach((x) => x.classList.toggle('on', x === b)); render(); };
+  $('sheet').classList.add('show');
 }
 function openTabs() {
   const rows = st.lists.map((l) => {
