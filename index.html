@@ -37,6 +37,28 @@ header { position: sticky; top: 0; z-index: 4; background: var(--bg); padding: 1
 .tabwrap .tabs { flex: 1; min-width: 0; margin-top: 0; }
 .addtab { flex: none; border: 0; background: none; padding: 9px 6px 9px 10px; color: var(--text); }
 .addtab svg { width: 22px; height: 22px; display: block; }
+.grab { width: 40px; height: 5px; border-radius: 3px; background: #4A4A4E; margin: -6px auto 10px; }
+.big { width: 100%; border: 0; border-bottom: 1px solid var(--line); background: none; color: var(--text); font-size: 18px; padding: 10px 2px 14px; font-family: inherit; }
+.big:focus { outline: none; }
+.line { display: flex; align-items: center; gap: 12px; padding: 12px 2px; border-bottom: 1px solid var(--line); min-height: 56px; }
+.line .ic { flex: none; width: 24px; height: 24px; color: var(--text); }
+.line .ic svg { width: 24px; height: 24px; display: block; }
+.lnk { flex: 1; text-align: left; border: 0; background: none; color: var(--accent); font-size: 16px; font-weight: 700; padding: 6px 0; }
+.lnk.set { color: var(--text); font-weight: 600; }
+.chip { flex: none; border: 0; background: #3A2A20; color: var(--accent); border-radius: 18px; padding: 8px 14px; font-size: 14px; }
+.detail { display: none; padding: 12px 2px 14px 38px; border-bottom: 1px solid var(--line); }
+.detail.open { display: block; }
+.detail input, .detail select { width: 100%; border: 1px solid var(--line); border-radius: 10px; padding: 10px; font-size: 16px; background: var(--card2); color: var(--text); font-family: inherit; color-scheme: dark; }
+.detail input:disabled { opacity: .4; }
+.detail input[type=checkbox] { width: 20px; height: 20px; padding: 0; }
+.detail .lbl { flex: 0 0 auto !important; color: var(--text2); font-size: 14px; }
+.detail .chkline label { font-size: 15px; color: var(--text); }
+.detail .clr { border: 0; background: none; color: var(--text2); font-size: 13px; padding: 4px 0; }
+.memoin { flex: 1; border: 0; background: none; color: var(--text); font-size: 16px; font-family: inherit; resize: none; padding: 6px 0; overflow: hidden; }
+.memoin:focus, .lnk:focus { outline: none; }
+.send { float: right; margin-top: 14px; width: 54px; height: 54px; border-radius: 50%; border: 0; background: var(--accent); color: #fff; display: flex; align-items: center; justify-content: center; box-shadow: 0 6px 16px rgba(255,122,47,.35); }
+.send svg { width: 24px; height: 24px; }
+.panel::after { content: ""; display: block; clear: both; }
 .tabrow { display: flex; align-items: center; gap: 10px; padding: 10px 2px; border-bottom: 1px solid var(--line); }
 .tabrow span:first-child { flex: 1; }
 .tabrow .cnt { color: var(--text2); font-size: 13px; }
@@ -309,6 +331,11 @@ $('addtab').addEventListener('click', openTabs);
 $('fab').addEventListener('click', () => needUser(() => openSheet(null)));
 
 function pad(n) { return String(n).padStart(2, '0'); }
+const SVG_ALARM = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="13" r="7.5"/><path d="M12 9.5V13l2.5 2M4.5 4.5 2.8 6.2M19.5 4.5l1.7 1.7"/></svg>';
+const SVG_MEMO = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16v11l-5 5H4z"/><path d="M15 20v-5h5M8 9h8M8 13h5"/></svg>';
+const SVG_UP = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5M6 11l6-6 6 6"/></svg>';
+function placeholderOf(list) { return list === '予定' ? '予定を入力' : /買い物/.test(list) ? '買うものを入力' : 'やることを入力'; }
+function dayLabel(dv) { if (!dv) return ''; const [y, m, d] = dv.split('-').map(Number); return fmtDue({ due: new Date(y, m - 1, d).toISOString(), allDay: true }); }
 function openSheet(o) {
   const isNew = !o;
   const d = o && o.due ? new Date(o.due) : null;
@@ -317,30 +344,63 @@ function openSheet(o) {
   const dateV = d ? `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}` : '';
   const timeV = d && !allDay ? `${pad(d.getHours())}:${pad(d.getMinutes())}` : '';
   $('panel').innerHTML = `
-    <h2>${isNew ? '追加する' : '編集'}</h2>
-    <div class="f"><div class="seg" id="sList">${st.lists.map((l) => `<button type="button" data-v="${esc(l)}" class="${l === list ? 'on' : ''}">${esc(l)}</button>`).join('')}</div></div>
-    <div class="f"><input id="sTitle" value="${o ? esc(o.title) : ''}" maxlength="200" placeholder="なにを？" enterkeyhint="done"></div>
-    <div class="f"><label>日付（なくてもいい）</label><div class="row"><input type="date" id="sDate" value="${dateV}"><input type="time" id="sTime" value="${timeV}" ${allDay ? 'disabled' : ''}></div></div>
-    <div class="f chkline"><input type="checkbox" id="sAll" ${allDay ? 'checked' : ''}><label for="sAll" style="margin:0;color:inherit;font-size:15px">終日（時刻なし）</label></div>
-    <div class="f"><label>通知（Googleカレンダーから届く）</label><select id="sRem"></select></div>
-    <div class="f"><label>メモ（なくてもいい）</label><textarea id="sMemo" maxlength="1000">${o ? esc(o.memo) : ''}</textarea></div>
-    <div class="acts">${isNew ? '' : '<button class="btn del" id="sDel">消す</button>'}<button class="btn sub" id="sCancel">やめる</button><button class="btn" id="sSave">${isNew ? '追加' : '保存'}</button></div>
-    ${o ? `<div class="info">${esc(o.addedBy)}が追加（${new Date(o.addedAt).toLocaleString('ja-JP')}）${o.done ? '・' + esc(o.doneBy) + 'が済みにした' : ''}</div>` : ''}`;
+    <div class="grab"></div>
+    ${isNew ? '' : `<div class="seg" id="sList" style="margin-bottom:6px">${st.lists.map((l) => `<button type="button" data-v="${esc(l)}" class="${l === list ? 'on' : ''}">${esc(l)}</button>`).join('')}</div>`}
+    <input id="sTitle" class="big" value="${o ? esc(o.title) : ''}" maxlength="200" placeholder="${placeholderOf(list)}" enterkeyhint="send" autocomplete="off">
+    <div class="line">
+      <span class="ic">${SVG_ALARM}</span>
+      <button type="button" class="lnk" id="sDayBtn"></button>
+      <button type="button" class="chip" data-q="0">今日</button><button type="button" class="chip" data-q="1">明日</button>
+    </div>
+    <div id="sDetail" class="detail">
+      <div class="row"><input type="date" id="sDate" value="${dateV}"><input type="time" id="sTime" value="${timeV}" ${allDay ? 'disabled' : ''}></div>
+      <div class="chkline" style="margin-top:10px"><input type="checkbox" id="sAll" ${allDay ? 'checked' : ''}><label for="sAll">終日（時刻なし）</label></div>
+      <div class="row" style="margin-top:10px;align-items:center"><span class="lbl">通知</span><select id="sRem"></select></div>
+      <button type="button" class="clr" id="sClear" style="margin-top:8px">日付を消す</button>
+    </div>
+    <div class="line">
+      <span class="ic">${SVG_MEMO}</span>
+      <textarea id="sMemo" class="memoin" rows="1" maxlength="1000" placeholder="メモを入力">${o ? esc(o.memo) : ''}</textarea>
+    </div>
+    ${isNew ? '' : `<div class="acts"><button class="btn del" id="sDel">消す</button><button class="btn sub" id="sCancel">やめる</button></div>
+    <div class="info">${esc(o.addedBy)}が追加（${new Date(o.addedAt).toLocaleString('ja-JP')}）${o.done ? '・' + esc(o.doneBy) + 'が済みにした' : ''}</div>`}
+    <button class="send" id="sSave" aria-label="${isNew ? '追加' : '保存'}">${SVG_UP}</button>`;
   let curList = list;
   const fillRem = () => {
     const all = $('sAll').checked; const opts = all ? REMIND_ALLDAY : REMIND;
     let cur = o ? o.remindMin : (all ? 180 : 0);
     if (!opts.some((x) => x.v === cur)) cur = all ? 180 : 0;
     $('sRem').innerHTML = opts.map((x) => `<option value="${x.v}" ${x.v === cur ? 'selected' : ''}>${x.t}</option>`).join('');
-    $('sRem').disabled = !$('sDate').value;
   };
-  fillRem();
-  $('sList').onclick = (e) => { const v = e.target.dataset.v; if (!v) return; curList = v; [...$('sList').children].forEach((b) => b.classList.toggle('on', b.dataset.v === v)); };
-  $('sAll').onchange = () => { $('sTime').disabled = $('sAll').checked; fillRem(); };
-  $('sDate').onchange = $('sDate').oninput = () => { fillRem(); };
+  const syncDay = () => {
+    const dv = $('sDate').value;
+    $('sDayBtn').textContent = dv ? dayLabel(dv) + ($('sAll').checked ? '' : ' ' + ($('sTime').value || '09:00')) : '日付を選択';
+    $('sDayBtn').classList.toggle('set', !!dv);
+    $('sTime').disabled = $('sAll').checked;
+  };
+  const setDay = (offset) => {
+    const t = new Date(); t.setDate(t.getDate() + offset);
+    $('sDate').value = `${t.getFullYear()}-${pad(t.getMonth() + 1)}-${pad(t.getDate())}`;
+    if (!$('sTime').value && !$('sAll').checked) { $('sAll').checked = true; fillRem(); }
+    syncDay();
+  };
+  fillRem(); syncDay();
+  if (dateV) $('sDetail').classList.add('open');
+  $('sDayBtn').onclick = () => {
+    $('sDetail').classList.toggle('open');
+    if (!$('sDate').value) { setDay(0); $('sAll').checked = false; $('sTime').value = pad(Math.min(23, new Date().getHours() + 1)) + ':00'; fillRem(); syncDay(); }
+  };
+  $('panel').querySelectorAll('[data-q]').forEach((b) => b.onclick = () => { setDay(Number(b.dataset.q)); });
+  $('sClear').onclick = () => { $('sDate').value = ''; $('sTime').value = ''; $('sAll').checked = false; fillRem(); syncDay(); $('sDetail').classList.remove('open'); };
+  $('sAll').onchange = () => { fillRem(); syncDay(); };
+  $('sDate').onchange = $('sDate').oninput = $('sTime').onchange = syncDay;
+  $('sMemo').oninput = () => { $('sMemo').style.height = 'auto'; $('sMemo').style.height = $('sMemo').scrollHeight + 'px'; };
+  if (!isNew) {
+    $('sList').onclick = (e) => { const v = e.target.dataset.v; if (!v) return; curList = v; [...$('sList').children].forEach((b) => b.classList.toggle('on', b.dataset.v === v)); };
+    $('sCancel').onclick = closeSheet;
+    $('sDel').onclick = () => ask('「' + esc(o.title) + '」を消す？<br>（元に戻せない）', () => { closeSheet(); call('deleteItem', [o.id]); });
+  }
   $('sTitle').onkeydown = (e) => { if (e.key === 'Enter' && !e.isComposing) { e.preventDefault(); $('sSave').click(); } };
-  $('sCancel').onclick = closeSheet;
-  if (!isNew) $('sDel').onclick = () => ask('「' + esc(o.title) + '」を消す？<br>（元に戻せない）', () => { closeSheet(); call('deleteItem', [o.id]); });
   $('sSave').onclick = () => {
     const title = $('sTitle').value.trim(); if (!title) { toast('内容を入れてね'); return; }
     const dv = $('sDate').value, all = $('sAll').checked;
@@ -350,9 +410,9 @@ function openSheet(o) {
       if (all) due = new Date(y, m - 1, dd).toISOString();
       else { const tv = $('sTime').value || '09:00'; const [hh, mm] = tv.split(':').map(Number); due = new Date(y, m - 1, dd, hh, mm).toISOString(); }
     }
-    const data = { list: curList, title, memo: $('sMemo').value, due, allDay: all, remindMin: Number($('sRem').value), user: me() };
+    const data = { list: curList, title, memo: $('sMemo').value, due, allDay: all, remindMin: dv ? Number($('sRem').value) : -1, user: me() };
     closeSheet();
-    if (isNew) { st.tab = curList; put('futari_tab', curList); call('addItem', [data]); }
+    if (isNew) call('addItem', [data]);
     else call('updateItem', [o.id, data]);
   };
   $('sheet').classList.add('show');
