@@ -355,7 +355,7 @@ function card(o) {
     return `<div class="item sel ${st.sel.has(o.id) ? 'picked' : ''} ${o.done ? 'done' : ''}" data-pick="${esc(o.id)}">
     <span class="pk">${ICON.check}</span>
     <div class="body"><div class="ttl">${esc(o.title)}</div>${meta}</div>
-    <span>${avOf(o.addedBy)}</span></div>`;
+    ${/買い物/.test(o.list) ? "" : `<span>${avOf(o.addedBy)}</span>`}</div>`;
   }
   return `<div class="item ${o.done ? 'done' : ''}">
     <button class="chk" data-chk="${esc(o.id)}" aria-label="${o.done ? '済みを戻す' : '済みにする'}">${ICON.check}</button>
@@ -364,7 +364,7 @@ function card(o) {
       ${o.memo ? `<div class="memo">${esc(o.memo)}</div>` : ''}
       ${meta}
     </div>
-    <span data-edit="${esc(o.id)}" title="${esc(o.addedBy)}が追加・${ago(o.addedAt)}">${avOf(o.addedBy)}</span></div>`;
+    ${/買い物/.test(o.list) ? "" : `<span data-edit="${esc(o.id)}" title="${esc(o.addedBy)}が追加・${ago(o.addedAt)}">${avOf(o.addedBy)}</span>`}</div>`;
 }
 
 function chooseUser(then) {
