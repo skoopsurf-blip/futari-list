@@ -100,6 +100,18 @@ header { position: sticky; top: 0; z-index: 4; background: var(--bg); padding: 1
 #selbar button:disabled { opacity: .35; }
 .sec .more { color: var(--text2); font-size: 20px; letter-spacing: 1px; padding: 0 4px; }
 .opt.danger { color: #FF8A9A; }
+.thumbs { flex: 1; display: flex; gap: 8px; overflow-x: auto; min-height: 10px; }
+.th { position: relative; flex: none; width: 56px; height: 56px; border-radius: 10px; overflow: hidden; background: var(--card2); }
+.th img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.th b { position: absolute; top: 2px; right: 2px; width: 20px; height: 20px; border-radius: 50%; background: rgba(0,0,0,.65); color: #fff; font-size: 13px; line-height: 20px; text-align: center; font-weight: 400; }
+.pbtn { flex: none; width: 48px; height: 48px; border-radius: 50%; background: #3A2A20; color: var(--accent); display: flex; align-items: center; justify-content: center; }
+.pbtn svg { width: 24px; height: 24px; }
+.pmark { display: inline-flex; align-items: center; gap: 3px; font-size: 12px; color: var(--text2); margin-top: 3px; }
+.pmark svg { width: 13px; height: 13px; }
+#viewer { position: fixed; inset: 0; z-index: 50; background: rgba(0,0,0,.92); display: none; align-items: center; justify-content: center; }
+#viewer.show { display: flex; }
+#viewer img { max-width: 100%; max-height: 100%; object-fit: contain; }
+.memo a.lk { color: #7FB8FF; text-decoration: underline; word-break: break-all; }
 .tabrow { display: flex; align-items: center; gap: 10px; padding: 10px 2px; border-bottom: 1px solid var(--line); }
 .tabrow span:first-child { flex: 1; }
 .tabrow .cnt { color: var(--text2); font-size: 13px; }
@@ -186,6 +198,7 @@ main { padding: 10px 12px calc(100px + var(--safe-b)); }
 <div id="sheet"><div class="panel" id="panel"></div></div>
 <div id="ask"><div class="panel"><h2 id="asktitle">どちらが使ってる？</h2><div style="font-size:13px;color:#9A9A9F">この端末で一度選べば覚えておく</div><div class="whos" id="askwho"></div></div></div>
 <div id="cf"><div class="panel"><div id="cfmsg" style="font-size:16px;line-height:1.6"></div><div class="acts"><button class="btn sub" id="cfno">やめる</button><button class="btn del" id="cfyes">消す</button></div></div></div>
+<div id="viewer"></div>
 <div id="toast"></div>
 
 <script>
@@ -205,15 +218,19 @@ if (!KEY_ && LOCAL) {
   const save = (a) => { try { localStorage.setItem(KEY, JSON.stringify(a)); } catch (e) {} };
   const LK = 'futari_mock_lists';
   const lists = () => { try { return JSON.parse(localStorage.getItem(LK)) || ['予定', '買い物リスト', 'やることリスト']; } catch (e) { return ['予定', '買い物リスト', 'やることリスト']; } };
+  const PK = 'futari_mock_photos';
+  const pget = () => { try { return JSON.parse(localStorage.getItem(PK) || '{}'); } catch (e) { return {}; } };
+  const psave = (urls) => { const m = pget(); const ids = (urls || []).map((u) => { const id = 'p' + Date.now() + Math.random().toString(36).slice(2, 6); m[id] = u; return id; }); localStorage.setItem(PK, JSON.stringify(m)); return ids; };
   const all = () => ({ items: load(), lists: lists(), users: ['ひとり目', 'ふたり目'], now: new Date().toISOString() });
   api = {
     getAll: () => all(),
-    addItem: (d) => { if (!d.title || !d.title.trim()) throw new Error('内容を入れてください'); const a = load(); a.push({ id: String(Date.now() + Math.random()), list: d.list, title: d.title.trim(), memo: d.memo || '', addedBy: d.user, addedAt: new Date().toISOString(), due: d.due ? new Date(d.due).toISOString() : '', allDay: !!d.allDay && !!d.due, remindMin: d.due ? Number(d.remindMin) : -1, pinned: !!d.pinned, done: false, doneBy: '', doneAt: '' }); save(a); return all(); },
-    updateItem: (id, d) => { const a = load(); const o = a.find(x => x.id === id); if (!o) throw new Error('項目が見つかりません'); Object.assign(o, { list: d.list, title: d.title.trim(), memo: d.memo || '', due: d.due ? new Date(d.due).toISOString() : '', allDay: !!d.allDay && !!d.due, remindMin: d.due ? Number(d.remindMin) : -1, pinned: !!d.pinned }); save(a); return all(); },
+    addItem: (d) => { if (!d.title || !d.title.trim()) throw new Error('内容を入れてください'); const a = load(); a.push({ id: String(Date.now() + Math.random()), list: d.list, title: d.title.trim(), memo: d.memo || '', addedBy: d.user, addedAt: new Date().toISOString(), due: d.due ? new Date(d.due).toISOString() : '', allDay: !!d.allDay && !!d.due, remindMin: d.due ? Number(d.remindMin) : -1, pinned: !!d.pinned, photos: psave(d.newPhotos), done: false, doneBy: '', doneAt: '' }); save(a); return all(); },
+    updateItem: (id, d) => { const a = load(); const o = a.find(x => x.id === id); if (!o) throw new Error('項目が見つかりません'); Object.assign(o, { list: d.list, title: d.title.trim(), memo: d.memo || '', due: d.due ? new Date(d.due).toISOString() : '', allDay: !!d.allDay && !!d.due, remindMin: d.due ? Number(d.remindMin) : -1, pinned: !!d.pinned, photos: (o.photos || []).filter((x) => !(d.removePhotos || []).includes(x)).concat(psave(d.newPhotos)) }); save(a); return all(); },
     setDone: (id, done, user) => { const a = load(); const o = a.find(x => x.id === id); if (!o) throw new Error('項目が見つかりません'); o.done = !!done; o.doneBy = done ? user : ''; o.doneAt = done ? new Date().toISOString() : ''; save(a); return all(); },
     deleteItem: (id) => { save(load().filter(x => x.id !== id)); return all(); },
     clearDone: (list) => { save(load().filter(x => !(x.list === list && x.done))); return all(); },
     addList: (n) => { n = String(n || '').trim(); if (!n) throw new Error('タブの名前を入れてください'); const a = lists(); if (a.includes(n)) throw new Error('同じ名前のタブがもうあります'); a.push(n); localStorage.setItem(LK, JSON.stringify(a)); return all(); },
+    getPhoto: (id) => { const u = pget()[id]; if (!u) throw new Error('その写真はありません'); return { id, url: u }; },
     undoneAll: (list) => { const a = load(); a.forEach(x => { if (x.list === list && x.done) { x.done = false; x.doneBy = ''; x.doneAt = ''; } }); save(a); return all(); },
     deleteItems: (ids) => { save(load().filter(x => !ids.includes(x.id))); return all(); },
     moveItems: (ids, list) => { const a = load(); a.forEach(x => { if (ids.includes(x.id)) x.list = list; }); save(a); return all(); },
@@ -361,8 +378,9 @@ function card(o) {
     <button class="chk" data-chk="${esc(o.id)}" aria-label="${o.done ? '済みを戻す' : '済みにする'}">${ICON.check}</button>
     <div class="body" data-edit="${esc(o.id)}">
       <div class="ttl">${o.pinned && !o.done ? `<span class="pin">${SVG_PIN}</span>` : ''}${esc(o.title)}</div>
-      ${o.memo ? `<div class="memo">${esc(o.memo)}</div>` : ''}
+      ${o.memo ? `<div class="memo">${linkify(o.memo)}</div>` : ''}
       ${meta}
+      ${(o.photos || []).length ? `<div class="pmark">${SVG_IMG}${o.photos.length}</div>` : ''}
     </div>
     ${/買い物/.test(o.list) ? "" : `<span data-edit="${esc(o.id)}" title="${esc(o.addedBy)}が追加・${ago(o.addedAt)}">${avOf(o.addedBy)}</span>`}</div>`;
 }
@@ -384,6 +402,7 @@ $('me').addEventListener('click', () => chooseUser(null));
 $('tabs').addEventListener('click', (e) => { const b = e.target.closest('[data-tab]'); if (!b) return; st.tab = b.dataset.tab; put('futari_tab', st.tab); st.sel = null; render(); window.scrollTo(0, 0); });
 $('main').addEventListener('click', (e) => {
   if (st.sel) return;
+  if (e.target.closest('a.lk')) return;
   const c = e.target.closest('[data-chk]');
   if (c) {
     const o = st.items.find((x) => x.id === c.dataset.chk); if (!o) return;
@@ -451,6 +470,8 @@ const SVG_ALARM = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" st
 const SVG_MEMO = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16v11l-5 5H4z"/><path d="M15 20v-5h5M8 9h8M8 13h5"/></svg>';
 const SVG_PIN = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 3h6l-1 6 4 3v2H6v-2l4-3z"/><path d="M12 14v7"/></svg>';
 const SVG_MENU = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg>';
+const SVG_IMG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 16l5-5 4 4 3-3 6 6"/><circle cx="15.5" cy="8.5" r="1.5"/></svg>';
+const SVG_CAM = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg>';
 const SVG_UP = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5M6 11l6-6 6 6"/></svg>';
 function whenOf(iso) {
   const d = new Date(iso); if (isNaN(d)) return '';
@@ -458,6 +479,34 @@ function whenOf(iso) {
   const diff = Math.round((day(d) - day(new Date())) / 86400000);
   const rel = diff === 0 ? '今日' : diff === -1 ? '昨日' : (d.getMonth() + 1) + '/' + d.getDate();
   return rel + ' ' + d.getHours() + ':' + String(d.getMinutes()).padStart(2, '0');
+}
+const photoCache = {};
+function loadPhoto(id) {
+  if (photoCache[id]) return Promise.resolve(photoCache[id]);
+  return request('getPhoto', [id]).then((r) => (photoCache[id] = r.url));
+}
+function shrink(file) {
+  return new Promise((ok, ng) => {
+    const fr = new FileReader();
+    fr.onerror = () => ng(new Error('写真を読めなかった'));
+    fr.onload = () => {
+      const im = new Image();
+      im.onerror = () => ng(new Error('写真を読めなかった'));
+      im.onload = () => {
+        const max = 1600, k = Math.min(1, max / Math.max(im.width, im.height));
+        const c = document.createElement('canvas'); c.width = Math.round(im.width * k); c.height = Math.round(im.height * k);
+        c.getContext('2d').drawImage(im, 0, 0, c.width, c.height);
+        ok(c.toDataURL('image/jpeg', 0.8));
+      };
+      im.src = fr.result;
+    };
+    fr.readAsDataURL(file);
+  });
+}
+function viewPhoto(url) { $('viewer').innerHTML = `<img src="${url}" alt="">`; $('viewer').classList.add('show'); }
+// メモの中の URL を押せるリンクにする（先に文字を無害化してから）
+function linkify(t) {
+  return esc(t).replace(/https?:\/\/[^\s<>"']+/g, (u) => `<a href="${u}" target="_blank" rel="noopener noreferrer" class="lk">${u.length > 40 ? u.slice(0, 40) + '…' : u}</a>`);
 }
 function placeholderOf(list) { return list === '予定' ? '予定を入力' : /買い物/.test(list) ? '買うものを入力' : 'やることを入力'; }
 function dayLabel(dv) { if (!dv) return ''; const [y, m, d] = dv.split('-').map(Number); return fmtDue({ due: new Date(y, m - 1, d).toISOString(), allDay: true }); }
@@ -486,7 +535,13 @@ function openSheet(o) {
     </div>
     <div class="line">
       <span class="ic">${SVG_MEMO}</span>
-      <textarea id="sMemo" class="memoin" rows="1" maxlength="1000" placeholder="メモを入力">${o ? esc(o.memo) : ''}</textarea>
+      <textarea id="sMemo" class="memoin" rows="1" maxlength="1000" placeholder="メモ・URLを入力">${o ? esc(o.memo) : ''}</textarea>
+    </div>
+    <div class="line">
+      <span class="ic">${SVG_IMG}</span>
+      <div class="thumbs" id="sThumbs"></div>
+      <label class="pbtn" aria-label="写真を選ぶ">${SVG_IMG}<input type="file" accept="image/*" multiple id="sPick" hidden></label>
+      <label class="pbtn" aria-label="カメラで撮る">${SVG_CAM}<input type="file" accept="image/*" capture="environment" id="sCam" hidden></label>
     </div>
     <div class="line">
       <span class="ic">${SVG_PIN}</span>
@@ -518,6 +573,28 @@ function openSheet(o) {
     syncDay();
   };
   let pinned = o ? !!o.pinned : false;
+  const oldPhotos = o ? (o.photos || []).slice() : [];
+  const removed = new Set(); const added = [];
+  const drawThumbs = () => {
+    const box = $('sThumbs'); if (!box) return;
+    const keep = oldPhotos.filter((id) => !removed.has(id));
+    box.innerHTML = keep.map((id) => `<span class="th" data-old="${id}"><img data-pid="${id}" src="${photoCache[id] || ''}" alt=""><b data-rm-old="${id}">×</b></span>`).join('')
+      + added.map((u, i) => `<span class="th"><img src="${u}" alt=""><b data-rm-new="${i}">×</b></span>`).join('');
+    keep.filter((id) => !photoCache[id]).forEach((id) => loadPhoto(id).then((u) => { const im = box.querySelector(`[data-pid="${id}"]`); if (im) im.src = u; }).catch(() => {}));
+  };
+  const onFiles = async (files) => {
+    for (const f of [...files].slice(0, 5 - added.length)) { try { added.push(await shrink(f)); } catch (e) { toast(e.message); } }
+    drawThumbs();
+  };
+  $('sPick').onchange = (e) => { onFiles(e.target.files); e.target.value = ''; };
+  $('sCam').onchange = (e) => { onFiles(e.target.files); e.target.value = ''; };
+  $('sThumbs').onclick = (e) => {
+    const ro = e.target.closest('[data-rm-old]'), rn = e.target.closest('[data-rm-new]');
+    if (ro) { removed.add(ro.dataset.rmOld); drawThumbs(); return; }
+    if (rn) { added.splice(Number(rn.dataset.rmNew), 1); drawThumbs(); return; }
+    const im = e.target.closest('img'); if (im && im.src) viewPhoto(im.src);
+  };
+  drawThumbs();
   const syncPin = () => { $('sPin').textContent = pinned ? 'ピン留め中（押すと外す）' : 'ピン留め'; $('sPin').classList.toggle('set', pinned); };
   syncPin();
   $('sPin').onclick = () => { pinned = !pinned; syncPin(); };
@@ -547,7 +624,7 @@ function openSheet(o) {
       if (all) due = new Date(y, m - 1, dd).toISOString();
       else { const tv = $('sTime').value || '09:00'; const [hh, mm] = tv.split(':').map(Number); due = new Date(y, m - 1, dd, hh, mm).toISOString(); }
     }
-    const data = { list: curList, title, memo: $('sMemo').value, due, allDay: all, remindMin: dv ? Number($('sRem').value) : -1, pinned, user: me() };
+    const data = { list: curList, title, memo: $('sMemo').value, due, allDay: all, remindMin: dv ? Number($('sRem').value) : -1, pinned, user: me(), newPhotos: added.slice(), removePhotos: [...removed] };
     closeSheet();
     if (isNew) call('addItem', [data]);
     else call('updateItem', [o.id, data]);
@@ -599,6 +676,7 @@ function ask(msg, yes) {
   $('cfno').onclick = () => $('cf').classList.remove('show');
   $('cfyes').onclick = () => { $('cf').classList.remove('show'); yes(); };
 }
+document.getElementById('viewer').addEventListener('click', () => $('viewer').classList.remove('show'));
 function closeSheet() { $('sheet').classList.remove('show'); }
 $('sheet').addEventListener('click', (e) => { if (e.target.id === 'sheet') closeSheet(); });
 
