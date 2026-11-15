@@ -187,9 +187,24 @@ const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&
 
 function call(fn, args, done) {
   st.busy++; $('bar').classList.add('go');
-  request(fn, args)
-    .then((r) => { st.busy--; if (!st.busy) $('bar').classList.remove('go'); if (r && r.items) { st.items = r.items; if (r.lists) { st.lists = r.lists; put('futari_lists', JSON.stringify(r.lists)); } if (r.users) { st.users = r.users; put('futari_users', JSON.stringify(r.users)); } render(); } done && done(true); })
-    .catch((e) => { st.busy--; if (!st.busy) $('bar').classList.remove('go'); toast((e && e.message) || '通信できなかった'); done && done(false); if (fn !== 'getAll') load(); });
+  const end = () => { st.busy = Math.max(0, st.busy - 1); if (!st.busy) $('bar').classList.remove('go'); };
+  const timeout = new Promise((_, ng) => setTimeout(() => ng(new Error('通信に時間がかかってる。少しして開き直してね')), 15000));
+  Promise.race([request(fn, args), timeout])
+    .then((r) => {
+      end();
+      if (r && r.items) {
+        st.items = r.items;
+        if (r.lists) { st.lists = r.lists; put('futari_lists', JSON.stringify(r.lists)); }
+        if (r.users) { st.users = r.users; put('futari_users', JSON.stringify(r.users)); }
+        try { render(); } catch (e) { console.error(e); toast('表示でエラー：' + e.message); }
+      }
+      done && done(true);
+    }, (e) => {
+      end();
+      toast((e && e.message) || '通信できなかった');
+      done && done(false);
+      if (fn !== 'getAll') load();
+    });
 }
 function load() { call('getAll', []); }
 
