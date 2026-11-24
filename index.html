@@ -755,20 +755,23 @@ function pinScreen(kind) {
 function changePin() {
   closeSheet();
   $('pin').innerHTML = `<div class="panel"><h2>暗証番号を変える</h2><div class="pinmsg">新しい番号は、もう1人のスマホでも入れ直しになる</div>
+    <div class="pinmsg" id="pinErr" style="color:#FF6B6B;font-weight:600;min-height:1em"></div>
     <input id="pinOld" type="password" inputmode="numeric" maxlength="8" placeholder="今の番号">
     <input id="pin1" type="password" inputmode="numeric" maxlength="8" placeholder="新しい番号（4〜8桁）">
     <input id="pin2" type="password" inputmode="numeric" maxlength="8" placeholder="新しい番号をもう一度">
     <div class="acts"><button class="btn sub" id="pinNo">やめる</button><button class="btn" id="pinOk">変える</button></div></div>`;
   $('pin').classList.add('show');
   $('pinNo').onclick = () => $('pin').classList.remove('show');
+  const err = (m) => { $('pinErr').textContent = m; toast(m); };
   $('pinOk').onclick = () => {
     const o = $('pinOld').value.trim(), a = $('pin1').value.trim();
-    if (!/^[0-9]{4,8}$/.test(a)) { toast('4〜8桁の数字にしてね'); return; }
-    if (a !== $('pin2').value.trim()) { toast('2回の番号が違う'); return; }
+    if (!/^[0-9]{4,8}$/.test(a)) { err('新しい番号は4〜8桁の数字にしてね'); return; }
+    if (a !== $('pin2').value.trim()) { err('新しい番号が2回で違う'); return; }
+    $('pinErr').textContent = '';
     $('pinOk').disabled = true; $('pinOk').textContent = '変えています…';
     const prev = get('futari_pin'); put('futari_pin', o);
     request('setPin', [a]).then(() => { put('futari_pin', a); $('pin').classList.remove('show'); toast('暗証番号を変えた'); })
-      .catch((e) => { put('futari_pin', prev || ''); $('pinOk').disabled = false; $('pinOk').textContent = '変える'; toast(e.message === 'PIN_WRONG' ? '今の番号が違う' : e.message); });
+      .catch((e) => { put('futari_pin', prev || ''); $('pinOk').disabled = false; $('pinOk').textContent = '変える'; err(e.message === 'PIN_WRONG' ? '今の番号が違う' : e.message === 'PIN_LOCKED' ? '間違いが続いたので1時間止めています' : e.message); });
   };
 }
 function savePrefs() { put('futari_prefs', JSON.stringify(prefs)); }
