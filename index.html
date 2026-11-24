@@ -190,7 +190,7 @@ main { padding: 10px 12px calc(100px + var(--safe-b)); }
 .whos button { border: 0; background: none; color: var(--text); display: flex; flex-direction: column; align-items: center; gap: 8px; font-size: 15px; }
 .whos .av { width: 64px; height: 64px; }
 .whos button.on .av { box-shadow: 0 0 0 3px var(--accent); }
-#toast { position: fixed; left: 50%; bottom: calc(100px + var(--safe-b)); transform: translateX(-50%); background: #3A3A3E; color: #fff; padding: 10px 16px; border-radius: 20px; font-size: 14px; display: none; z-index: 40; max-width: 90%; text-align: center; }
+#toast { position: fixed; left: 50%; bottom: calc(100px + var(--safe-b)); transform: translateX(-50%); background: #3A3A3E; color: #fff; padding: 10px 16px; border-radius: 20px; font-size: 14px; display: none; z-index: 60; max-width: 90%; text-align: center; }
 </style>
 </head>
 <body>
@@ -765,9 +765,10 @@ function changePin() {
     const o = $('pinOld').value.trim(), a = $('pin1').value.trim();
     if (!/^[0-9]{4,8}$/.test(a)) { toast('4〜8桁の数字にしてね'); return; }
     if (a !== $('pin2').value.trim()) { toast('2回の番号が違う'); return; }
+    $('pinOk').disabled = true; $('pinOk').textContent = '変えています…';
     const prev = get('futari_pin'); put('futari_pin', o);
     request('setPin', [a]).then(() => { put('futari_pin', a); $('pin').classList.remove('show'); toast('暗証番号を変えた'); })
-      .catch((e) => { put('futari_pin', prev || ''); toast(e.message === 'PIN_WRONG' ? '今の番号が違う' : e.message); });
+      .catch((e) => { put('futari_pin', prev || ''); $('pinOk').disabled = false; $('pinOk').textContent = '変える'; toast(e.message === 'PIN_WRONG' ? '今の番号が違う' : e.message); });
   };
 }
 function savePrefs() { put('futari_prefs', JSON.stringify(prefs)); }
