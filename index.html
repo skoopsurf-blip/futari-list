@@ -108,6 +108,13 @@ header { position: sticky; top: 0; z-index: 4; background: var(--bg); padding: 1
 .pbtn svg { width: 24px; height: 24px; }
 .pmark { display: inline-flex; align-items: center; gap: 3px; font-size: 12px; color: var(--text2); margin-top: 3px; }
 .pmark svg { width: 13px; height: 13px; }
+.stk { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
+.stk .qb { width: 30px; height: 30px; border-radius: 50%; border: 0; background: var(--card2); color: var(--text); font-size: 18px; line-height: 1; }
+.stk .q { min-width: 22px; text-align: center; font-weight: 600; font-size: 15px; }
+.stk .lowb { border: 1px solid var(--line); background: transparent; color: var(--text2); border-radius: 999px; padding: 4px 9px; font-size: 12px; }
+.stk .lowb.on { background: var(--accent); border-color: var(--accent); color: #fff; }
+.item .from { font-size: 11px; color: var(--accent); border: 1px solid var(--accent); border-radius: 999px; padding: 1px 7px; margin-left: 6px; vertical-align: 1px; }
+#qn { width: 100%; margin-top: 10px; border: 1px solid var(--line); border-radius: 12px; padding: 12px; font-size: 20px; text-align: center; background: var(--card2); color: var(--text); }
 #viewer { position: fixed; inset: 0; z-index: 50; background: rgba(0,0,0,.92); display: none; align-items: center; justify-content: center; }
 #viewer.show { display: flex; }
 #viewer img { max-width: 100%; max-height: 100%; object-fit: contain; }
@@ -228,6 +235,11 @@ if (HASH.u) { try { localStorage.setItem('futari_uc', HASH.u); } catch (e) {} }
 const KEY_ = HASH.k || (() => { try { return localStorage.getItem('futari_k'); } catch (e) { return null; } })();
 const LOCAL = /^(localhost|127\.0\.0\.1)$/.test(location.hostname);
 let api;
+// ---- 買い物リスト ⇄ 家にあるもの（本人 2026-11-26）：買ったら家へ・使い切ったら買い物へ・家にある物を買い物に足すと知らせる ----
+const SHOP = '買い物リスト', STOCK = '家にあるもの';
+const normT = (s) => String(s || '').normalize('NFKC').toLowerCase().replace(/\s+/g, '').replace(/[ァ-ヶ]/g, (c) => String.fromCharCode(c.charCodeAt(0) - 0x60));
+const hasQty = (o) => o.qty !== null && o.qty !== undefined && o.qty !== '';
+const swapTo = (list) => list === SHOP ? STOCK : list === STOCK ? SHOP : '';
 // ---- お試しモード：手元（localhost）で鍵なしで開いたときだけ、端末の中だけで動く偽のサーバーを使う ----
 if (!KEY_ && LOCAL) {
   window.__mock = true;
@@ -235,7 +247,7 @@ if (!KEY_ && LOCAL) {
   const load = () => { try { return JSON.parse(localStorage.getItem(KEY) || '[]'); } catch (e) { return []; } };
   const save = (a) => { try { localStorage.setItem(KEY, JSON.stringify(a)); } catch (e) {} };
   const LK = 'futari_mock_lists';
-  const lists = () => { try { return JSON.parse(localStorage.getItem(LK)) || ['予定', '買い物リスト', 'やることリスト']; } catch (e) { return ['予定', '買い物リスト', 'やることリスト']; } };
+  const lists = () => { try { return JSON.parse(localStorage.getItem(LK)) || ['予定', '買い物リスト', '家にあるもの', 'やることリスト']; } catch (e) { return ['予定', '買い物リスト', '家にあるもの', 'やることリスト']; } };
   const PK = 'futari_mock_photos';
   const pget = () => { try { return JSON.parse(localStorage.getItem(PK) || '{}'); } catch (e) { return {}; } };
   const psave = (urls) => { const m = pget(); const ids = (urls || []).map((u) => { const id = 'p' + Date.now() + Math.random().toString(36).slice(2, 6); m[id] = u; return id; }); localStorage.setItem(PK, JSON.stringify(m)); return ids; };
@@ -244,8 +256,11 @@ if (!KEY_ && LOCAL) {
     getAll: () => all(),
     addItem: (d) => { if (!d.title || !d.title.trim()) throw new Error('内容を入れてください'); const a = load(); a.push({ id: String(Date.now() + Math.random()), list: d.list, title: d.title.trim(), memo: d.memo || '', addedBy: d.user, addedAt: new Date().toISOString(), due: d.due ? new Date(d.due).toISOString() : '', allDay: !!d.allDay && !!d.due, remindMin: d.due ? Number(d.remindMin) : -1, pinned: !!d.pinned, assign: d.assign || [], photos: psave(d.newPhotos), done: false, doneBy: '', doneAt: '' }); save(a); return all(); },
     updateItem: (id, d) => { const a = load(); const o = a.find(x => x.id === id); if (!o) throw new Error('項目が見つかりません'); Object.assign(o, { list: d.list, title: d.title.trim(), memo: d.memo || '', due: d.due ? new Date(d.due).toISOString() : '', allDay: !!d.allDay && !!d.due, remindMin: d.due ? Number(d.remindMin) : -1, pinned: !!d.pinned, assign: d.assign || [], photos: (o.photos || []).filter((x) => !(d.removePhotos || []).includes(x)).concat(psave(d.newPhotos)) }); save(a); return all(); },
-    setDone: (id, done, user) => { const a = load(); const o = a.find(x => x.id === id); if (!o) throw new Error('項目が見つかりません'); o.done = !!done; o.doneBy = done ? user : ''; o.doneAt = done ? new Date().toISOString() : ''; save(a); return all(); },
+    setDone: (id, done, user, bought) => { const a = load(); const o = a.find(x => x.id === id); if (!o) throw new Error('項目が見つかりません'); const to = done && lists().includes(STOCK) && lists().includes(SHOP) ? swapTo(o.list) : ''; if (to) { o.list = to; o.done = false; o.doneBy = ''; o.doneAt = ''; o.sort = null; o.low = false; if (o.qty !== null && o.qty !== undefined && o.qty !== '') o.qty = to === STOCK ? Math.max(0, Math.round(Number(bought) || 1)) : 0; } else { o.done = !!done; o.doneBy = done ? user : ''; o.doneAt = done ? new Date().toISOString() : ''; } save(a); return all(); },
     deleteItem: (id) => { save(load().filter(x => x.id !== id)); return all(); },
+    restock: (id, n) => { const a = load(); const o = a.find(x => x.id === id); o.low = false; if (o.qty !== null && o.qty !== undefined && o.qty !== '') o.qty = Number(o.qty) + n; save(a); return all(); },
+    setLow: (id, low) => { const a = load(); const o = a.find(x => x.id === id); o.low = !!low; save(a); return all(); },
+    stepQty: (id, d) => { const a = load(); const o = a.find(x => x.id === id); o.qty = Math.max(0, (Number(o.qty) || 0) + d); if (o.qty === 0 && o.list === STOCK) { o.list = SHOP; o.low = false; o.sort = null; } save(a); return all(); },
     clearDone: (list) => { save(load().filter(x => !(x.list === list && x.done))); return all(); },
     addList: (n) => { n = String(n || '').trim(); if (!n) throw new Error('タブの名前を入れてください'); const a = lists(); if (a.includes(n)) throw new Error('同じ名前のタブがもうあります'); a.push(n); localStorage.setItem(LK, JSON.stringify(a)); return all(); },
     getPhoto: (id) => { const u = pget()[id]; if (!u) throw new Error('その写真はありません'); return { id, url: u }; },
@@ -255,6 +270,9 @@ if (!KEY_ && LOCAL) {
     moveItems: (ids, list) => { const a = load(); a.forEach(x => { if (ids.includes(x.id)) x.list = list; }); save(a); return all(); },
     deleteList: (n) => { if (load().some(x => x.list === n)) throw new Error('項目が残っているタブは消せません（先に項目を消してください）'); localStorage.setItem(LK, JSON.stringify(lists().filter(x => x !== n))); return all(); }
   };
+  const _add = api.addItem, _upd = api.updateItem;
+  api.addItem = (d) => { const r = _add(d); const a = load(); a[a.length - 1].qty = d.qty === '' || d.qty === null || d.qty === undefined ? null : Number(d.qty); save(a); return all(); };
+  api.updateItem = (id, d) => { _upd(id, d); const a = load(); const o = a.find(x => x.id === id); o.qty = d.qty === '' || d.qty === null || d.qty === undefined ? null : Number(d.qty); save(a); return all(); };
   window.__mock = true;
 }
 function request(fn, args) {
@@ -370,23 +388,38 @@ function render() {
   $('me').innerHTML = me() ? `${avOf(me())}${esc(me())}` : '名前を選ぶ';
   if (st.lists.indexOf(st.tab) < 0) st.tab = st.lists[0];
   $('tabs').innerHTML = st.lists.map((l) => {
-    const n = st.items.filter((o) => o.list === l && !o.done).length;
+    const n = st.items.filter((o) => (o.list === l || (l === SHOP && o.list === STOCK && o.low)) && !o.done).length;
     return `<button data-tab="${esc(l)}" class="${st.tab === l ? 'on' : ''}">${esc(l)}${n && prefs.count ? `<span class="n">${n}</span>` : ''}</button>`;
   }).join('');
   const onTab = $('tabs').querySelector('.on');
   if (onTab) { const t = $('tabs'); const l = onTab.offsetLeft - t.offsetLeft, r = l + onTab.offsetWidth; if (l < t.scrollLeft) t.scrollLeft = l - 8; else if (r > t.scrollLeft + t.clientWidth) t.scrollLeft = r - t.clientWidth + 8; }
   const mine = st.items.filter((o) => o.list === st.tab);
-  const open = sortItems(mine.filter((o) => !o.done));
+  let open = sortItems(mine.filter((o) => !o.done));
+  if (st.tab === STOCK) open = open.filter((o) => o.low).concat(open.filter((o) => !o.low));
   const done = mine.filter((o) => o.done).sort((x, y) => new Date(y.doneAt) - new Date(x.doneAt));
   let h = '';
-  if (!open.length && !done.length) h = `<div class="empty">まだ何もない<br>右下の ＋ から追加してね</div>`;
-  else if (!open.length) h = `<div class="empty">ぜんぶ済んだ</div>`;
+  const lows = st.tab === SHOP ? st.items.filter((o) => o.list === STOCK && !o.done && o.low) : [];
+  if (!open.length && !done.length && !lows.length) h = `<div class="empty">まだ何もない<br>右下の ＋ から追加してね</div>`;
+  else if (!open.length && !lows.length) h = `<div class="empty">ぜんぶ済んだ</div>`;
   const grouped = prefs.group && /買い物/.test(st.tab);
-  if (grouped && open.length) {
-    const shop = (o) => { const m = /[（(]([^（）()]+)[）)]\s*$/.exec(o.title); return m ? m[1].trim() : ''; };
-    const names = [...new Set(open.map(shop))].sort((a, b) => (a === '') - (b === '') || a.localeCompare(b, 'ja'));
-    h += names.map((n) => `<div class="grp">${n ? esc(n) : 'お店の指定なし'}</div>` + open.filter((o) => shop(o) === n).map(card).join('')).join('');
-  } else h += open.map(card).join('');
+  const lowCard = (o) => `<div class="item">
+    <button class="chk" data-restock="${esc(o.id)}" aria-label="買った">${ICON.check}</button>
+    <div class="body" data-edit="${esc(o.id)}"><div class="ttl">${esc(o.title)}<span class="from">少ない</span></div>${hasQty(o) ? `<div class="meta"><span class="sub">家に ${Number(o.qty)}</span></div>` : ''}</div></div>`;
+  const lw = st.sel ? [] : lows;
+  if (grouped && (open.length || lw.length)) {
+    // 家にあるものの「少ない」も、名前の最後のかっこ書きのお店の見出しの下に入れる（本人 2026-11-26）
+    // かっこが無い物は、前に同じ名前で付けたお店を使う（全タブ・済みも含めていちばん新しいもの・本人 2026-11-26）
+    const RX = /\s*[（(]([^（）()]+)[）)]\s*$/;
+    const learned = {};
+    st.items.filter((x) => RX.test(x.title)).sort((a, b) => new Date(a.updatedAt || a.addedAt) - new Date(b.updatedAt || b.addedAt))
+      .forEach((x) => { learned[normT(x.title.replace(RX, ''))] = RX.exec(x.title)[1].trim(); });
+    const shop = (o) => { const m = RX.exec(o.title); return m ? m[1].trim() : (learned[normT(o.title)] || ''); };
+    const names = [...new Set(open.concat(lw).map(shop))].sort((a, b) => (a === '') - (b === '') || a.localeCompare(b, 'ja'));
+    h += names.map((n) => `<div class="grp">${n ? esc(n) : 'お店の指定なし'}</div>` + open.filter((o) => shop(o) === n).map(card).join('') + lw.filter((o) => shop(o) === n).map(lowCard).join('')).join('');
+  } else {
+    h += open.map(card).join('');
+    if (lw.length) h += `<div class="grp">家にあるもので少ない</div>` + lw.map(lowCard).join('');
+  }
   if (done.length) {
     h += `<div class="sec"><button data-act="toggleDone">${ICON.chev.replace('CLS', st.showDone ? 'open' : '')}完了したもの ${done.length}</button><button class="more" data-act="doneMenu" aria-label="完了したものの操作">…</button></div>`;
     if (st.showDone) h += done.map(card).join('');
@@ -418,6 +451,7 @@ function card(o) {
       ${meta}
       ${(o.photos || []).length ? `<div class="pmark">${SVG_IMG}${o.photos.length}</div>` : ''}
     </div>
+    ${o.list === STOCK && !o.done ? `<div class="stk">${hasQty(o) ? `<button class="qb" data-qm="${esc(o.id)}" aria-label="1つ使った">−</button><span class="q">${Number(o.qty)}</span>` : ''}<button class="lowb ${o.low ? 'on' : ''}" data-low="${esc(o.id)}">少ない</button></div>` : ''}
     ${assignAv(o, true)}</div>`;
 }
 
@@ -439,10 +473,26 @@ $('tabs').addEventListener('click', (e) => { const b = e.target.closest('[data-t
 $('main').addEventListener('click', (e) => {
   if (st.sel) return;
   if (e.target.closest('a.lk')) return;
+  const rs = e.target.closest('[data-restock]');
+  if (rs) { const o = st.items.find((x) => x.id === rs.dataset.restock); if (!o) return;
+    const go = (n) => { o.low = false; if (hasQty(o)) o.qty = Number(o.qty) + n; render(); toast('買ったので「少ない」を外した'); call('restock', [o.id, n]); };
+    if (hasQty(o)) { ask('「' + esc(o.title) + '」をいくつ買った？<input id="qn" type="number" inputmode="numeric" min="1" max="999" value="1">', () => go(Math.max(1, Math.round(Number($('qn').value) || 1))), 'OK'); setTimeout(() => { const q = $('qn'); if (q) { q.focus(); q.select(); } }, 50); }
+    else go(1);
+    return; }
+  const lb = e.target.closest('[data-low]');
+  if (lb) { const o = st.items.find((x) => x.id === lb.dataset.low); if (!o) return; o.low = !o.low; render(); call('setLow', [o.id, o.low]); return; }
+  const qm = e.target.closest('[data-qm]');
+  if (qm) { const o = st.items.find((x) => x.id === qm.dataset.qm); if (!o) return; o.qty = Math.max(0, Number(o.qty) - 1); if (o.qty === 0 && st.lists.includes(SHOP)) { o.list = SHOP; o.low = false; toast('なくなったので「買い物リスト」へ移した'); } render(); call('stepQty', [o.id, -1]); return; }
   const c = e.target.closest('[data-chk]');
   if (c) {
     const o = st.items.find((x) => x.id === c.dataset.chk); if (!o) return;
-    needUser(() => { o.done = !o.done; o.doneBy = o.done ? me() : ''; o.doneAt = new Date().toISOString(); render(); call('setDone', [o.id, o.done, me()]); });
+    needUser(() => {
+      const to = !o.done && st.lists.includes(STOCK) && st.lists.includes(SHOP) ? swapTo(o.list) : '';
+      const move = (n) => { o.list = to; o.sort = null; o.low = false; if (hasQty(o)) o.qty = to === STOCK ? n : 0; render(); toast(to === STOCK ? '買ったので「家にあるもの」へ移した' : '使い切ったので「買い物リスト」へ戻した'); call('setDone', [o.id, true, me(), n]); };
+      if (to === STOCK && hasQty(o)) { ask('「' + esc(o.title) + '」をいくつ買った？<input id="qn" type="number" inputmode="numeric" min="1" max="999" value="1">', () => move(Math.max(1, Math.round(Number($('qn').value) || 1))), '家にあるものへ'); setTimeout(() => { const q = $('qn'); if (q) { q.focus(); q.select(); } }, 50); return; }
+      if (to) { move(1); return; }
+      o.done = !o.done; o.doneBy = o.done ? me() : ''; o.doneAt = new Date().toISOString(); render(); call('setDone', [o.id, o.done, me()]);
+    });
     return;
   }
   const ed = e.target.closest('[data-edit]');
@@ -625,6 +675,7 @@ function openSheet(o) {
       <span class="ic">${SVG_MEMO}</span>
       <textarea id="sMemo" class="memoin" rows="1" maxlength="1000" placeholder="メモ・URLを入力">${o ? esc(o.memo) : ''}</textarea>
     </div>
+    ${list === SHOP || list === STOCK ? `<div class="line"><span class="ic" style="font-weight:700">#</span><input id="sQty" type="number" inputmode="numeric" min="0" max="999" class="memoin" placeholder="数（ストック品だけ・空欄なら数えない）" value="${o && hasQty(o) ? Number(o.qty) : ''}"></div>` : ''}
     <div class="line">
       <span class="ic">${SVG_IMG}</span>
       <div class="thumbs" id="sThumbs"></div>
@@ -710,6 +761,12 @@ function openSheet(o) {
   $('sTitle').onkeydown = (e) => { if (e.key === 'Enter' && !e.isComposing) { e.preventDefault(); $('sSave').click(); } };
   $('sSave').onclick = () => {
     const title = $('sTitle').value.trim(); if (!title) { toast('内容を入れてね'); return; }
+    const dup = isNew && curList === SHOP ? st.items.find((x) => x.list === STOCK && !x.done && !x.low && normT(x.title) === normT(title)) : null;
+    if (dup) { ask('「' + esc(dup.title) + '」は「家にあるもの」に入ってるよ。<br>それでも買い物リストに入れる？', () => go(), '入れる'); return; }
+    go();
+  };
+  const go = () => {
+    const title = $('sTitle').value.trim();
     const dv = $('sDate').value, all = $('sAll').checked;
     let due = '';
     if (dv) {
@@ -717,7 +774,7 @@ function openSheet(o) {
       if (all) due = new Date(y, m - 1, dd).toISOString();
       else { const tv = $('sTime').value || '09:00'; const [hh, mm] = tv.split(':').map(Number); due = new Date(y, m - 1, dd, hh, mm).toISOString(); }
     }
-    const data = { list: curList, title, memo: $('sMemo').value, due, allDay: all, remindMin: dv ? Number($('sRem').value) : -1, pinned, assign: [...assign], user: me(), newPhotos: added.slice(), removePhotos: [...removed] };
+    const data = { list: curList, title, memo: $('sMemo').value, due, allDay: all, remindMin: dv ? Number($('sRem').value) : -1, pinned, assign: [...assign], user: me(), newPhotos: added.slice(), removePhotos: [...removed], qty: $('sQty') ? ($('sQty').value === '' ? '' : Number($('sQty').value)) : (o && hasQty(o) ? o.qty : '') };
     closeSheet();
     if (isNew) { const top = () => { window.scrollTo(0, 0); if (document.scrollingElement) document.scrollingElement.scrollTop = 0; }; setTimeout(top, 50); call('addItem', [data], () => setTimeout(top, 80)); }
     else call('updateItem', [o.id, data]);
@@ -818,8 +875,9 @@ function openTabs() {
   $('sheet').classList.add('show');
   setTimeout(() => $('tName').focus(), 50);
 }
-function ask(msg, yes) {
+function ask(msg, yes, label) {
   $('cfmsg').innerHTML = msg; $('cf').classList.add('show');
+  $('cfyes').textContent = label || '消す'; $('cfyes').className = label ? 'btn' : 'btn del';
   $('cfno').onclick = () => $('cf').classList.remove('show');
   $('cfyes').onclick = () => { $('cf').classList.remove('show'); yes(); };
 }
