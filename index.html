@@ -359,7 +359,7 @@ const ICON = {
   chev: '<svg class="chev CLS" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>'
 };
 
-const CATS = ['野菜・果物', '肉・魚', '卵・乳製品', '冷凍', '主食・麺・粉', '調味料', '飲み物', 'お菓子', '日用品', 'その他'];
+const CATS = ['野菜・果物', '肉・魚', '卵・乳製品', '漬物・加工品', '冷凍', '主食・麺・粉', '乾物・缶詰', '調味料', '飲み物', 'お菓子', '日用品', 'その他'];
 const prefs = Object.assign({ hist: true, count: true, order: 'new_top', group: true, cat: true }, JSON.parse(get('futari_prefs') || '{}'));
 const st = { items: [], lists: JSON.parse(get('futari_lists') || 'null') || ['予定', '買い物リスト', 'やることリスト'], tab: get('futari_tab') || '予定', uc: get('futari_uc') || '', users: JSON.parse(get('futari_users') || 'null') || ['', ''], busy: 0, sel: null, showDone: get('futari_showdone') !== '0' };
 
