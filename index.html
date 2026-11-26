@@ -440,7 +440,7 @@ function sortItems(a, tab) {
   };
   // 予定タブはいつも日付順（近い日が上）（本人 2026-11-26）
   // 家にあるものは名前順（あいうえお順）（本人 2026-11-26）
-  const byName = (x, y) => keyOf(x.title).localeCompare(keyOf(y.title), 'ja');
+  const byName = (x, y) => keyOf(x.yomi || x.title).localeCompare(keyOf(y.yomi || y.title), 'ja');
   const cmp = tab === '予定' ? byDue(1) : tab === STOCK ? byName : prefs.order === 'manual' ? manual
     : prefs.order === 'new_bottom' ? (x, y) => t(x.addedAt) - t(y.addedAt)
     : prefs.order === 'date' ? byDue(1)
