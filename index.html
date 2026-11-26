@@ -359,7 +359,8 @@ const ICON = {
   chev: '<svg class="chev CLS" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>'
 };
 
-const prefs = Object.assign({ hist: true, count: true, order: 'new_top', group: true }, JSON.parse(get('futari_prefs') || '{}'));
+const CATS = ['野菜・果物', '肉・魚', '卵・乳製品', '冷凍', '主食・麺・粉', '調味料', '飲み物', 'お菓子', '日用品', 'その他'];
+const prefs = Object.assign({ hist: true, count: true, order: 'new_top', group: true, cat: true }, JSON.parse(get('futari_prefs') || '{}'));
 const st = { items: [], lists: JSON.parse(get('futari_lists') || 'null') || ['予定', '買い物リスト', 'やることリスト'], tab: get('futari_tab') || '予定', uc: get('futari_uc') || '', users: JSON.parse(get('futari_users') || 'null') || ['', ''], busy: 0, sel: null, showDone: get('futari_showdone') !== '0' };
 
 function nameOf(code) { const i = CODES.indexOf(code); return i >= 0 ? st.users[i] : ''; }
@@ -480,6 +481,13 @@ function render() {
     const shop = (o) => { const m = RX.exec(o.title); return m ? m[1].trim() : (learned[normT(o.title)] || ''); };
     const names = [...new Set(open.concat(lw).map(shop))].sort((a, b) => (a === '') - (b === '') || a.localeCompare(b, 'ja'));
     h += names.map((n) => `<div class="grp">${n ? esc(n) : 'お店の指定なし'}</div>` + open.filter((o) => shop(o) === n).map(card).join('') + lw.filter((o) => shop(o) === n).map(lowCard).join('')).join('');
+  } else if (st.tab === STOCK && prefs.cat && !st.sel && open.length) {
+    // 家にあるものを種類で分ける（本人 2026-11-26）。期限が近い物・少ない物は一番上の『すぐ見る』
+    const hot = (o) => { const e = expInfo(o); return (e && e.k <= 3) || o.low; };
+    const top = open.filter(hot), rest = open.filter((o) => !hot(o));
+    const catOf = (o) => CATS.includes(o.cat) ? o.cat : 'その他';
+    if (top.length) h += `<div class="grp">すぐ見る</div>` + top.map(card).join('');
+    h += CATS.filter((c) => rest.some((o) => catOf(o) === c)).map((c) => `<div class="grp">${c}</div>` + rest.filter((o) => catOf(o) === c).map(card).join('')).join('');
   } else {
     h += open.map(card).join('');
     if (lw.length) h += `<div class="grp">家にあるもので少ない</div>` + lw.map(lowCard).join('');
@@ -1003,6 +1011,7 @@ function openPrefs() {
     <div class="card2">
       <label class="sw"><span>入力するときに履歴を表示</span><input type="checkbox" id="pHist" ${prefs.hist ? 'checked' : ''}><i></i></label>
       <label class="sw"><span>買い物はかっこ書きのお店でまとめる</span><input type="checkbox" id="pGroup" ${prefs.group ? 'checked' : ''}><i></i></label>
+      <label class="sw"><span>家にあるものを種類でまとめる</span><input type="checkbox" id="pCat" ${prefs.cat ? 'checked' : ''}><i></i></label>
       <label class="sw"><span>タブに件数を表示</span><input type="checkbox" id="pCount" ${prefs.count ? 'checked' : ''}><i></i></label>
     </div>
     <div class="ph">表示の順番</div>
@@ -1018,6 +1027,7 @@ function openPrefs() {
   if ($('pChangePin')) $('pChangePin').onclick = changePin;
   $('pHist').onchange = () => { prefs.hist = $('pHist').checked; savePrefs(); };
   $('pGroup').onchange = () => { prefs.group = $('pGroup').checked; savePrefs(); render(); };
+  $('pCat').onchange = () => { prefs.cat = $('pCat').checked; savePrefs(); render(); };
   $('pCount').onchange = () => { prefs.count = $('pCount').checked; savePrefs(); render(); };
   $('pOrder').onclick = (e) => { const b = e.target.closest('[data-o]'); if (!b) return; prefs.order = b.dataset.o; savePrefs(); [...$('pOrder').children].forEach((x) => x.classList.toggle('on', x === b)); render(); };
   $('sheet').classList.add('show');
