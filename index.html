@@ -135,7 +135,9 @@ header { position: sticky; top: 0; z-index: 4; background: var(--bg); padding: 1
 #qn { width: 100%; margin-top: 10px; border: 1px solid var(--line); border-radius: 12px; padding: 12px; font-size: 20px; text-align: center; background: var(--card2); color: var(--text); }
 #viewer { position: fixed; inset: 0; z-index: 50; background: rgba(0,0,0,.92); display: none; align-items: center; justify-content: center; }
 #viewer.show { display: flex; }
-#viewer img { max-width: 100%; max-height: 100%; object-fit: contain; }
+#viewer { touch-action: none; overflow: hidden; }
+#viewer img { max-width: 100%; max-height: 100%; object-fit: contain; transform-origin: 0 0; will-change: transform; user-select: none; -webkit-user-drag: none; }
+#viewer .vx { position: absolute; top: calc(12px + env(safe-area-inset-top)); right: 12px; width: 40px; height: 40px; border-radius: 50%; border: 0; background: rgba(0,0,0,.55); color: #fff; font-size: 22px; z-index: 2; }
 .memo a.lk { color: #7FB8FF; text-decoration: underline; word-break: break-all; }
 .item { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
 .item.lifting { position: relative; z-index: 5; transform-origin: center; box-shadow: 0 10px 24px rgba(0,0,0,.55), inset 0 0 0 2px var(--accent); background: #26262A; }
@@ -775,7 +777,7 @@ function loadPhoto(id) {
   if (photoCache[id]) return Promise.resolve(photoCache[id]);
   return request('getPhoto', [id]).then((r) => (photoCache[id] = r.url));
 }
-function shrink(file) {
+function shrink(file, max = 1600) {
   return new Promise((ok, ng) => {
     const fr = new FileReader();
     fr.onerror = () => ng(new Error('写真を読めなかった'));
@@ -783,17 +785,57 @@ function shrink(file) {
       const im = new Image();
       im.onerror = () => ng(new Error('写真を読めなかった'));
       im.onload = () => {
-        const max = 1600, k = Math.min(1, max / Math.max(im.width, im.height));
+        const k = Math.min(1, max / Math.max(im.width, im.height));
         const c = document.createElement('canvas'); c.width = Math.round(im.width * k); c.height = Math.round(im.height * k);
         c.getContext('2d').drawImage(im, 0, 0, c.width, c.height);
-        ok(c.toDataURL('image/jpeg', 0.8));
+        ok(c.toDataURL('image/jpeg', max > 1600 ? 0.85 : 0.8));
       };
       im.src = fr.result;
     };
     fr.readAsDataURL(file);
   });
 }
-function viewPhoto(url) { $('viewer').innerHTML = `<img src="${url}" alt="">`; $('viewer').classList.add('show'); }
+function viewPhoto(url) { $('viewer').innerHTML = `<button class="vx" aria-label="閉じる">×</button><img src="${url}" alt="">`; $('viewer').classList.add('show'); zoomReset(); }
+// 写真の拡大：指2本で広げる・ダブルタップで2.5倍／戻す・拡大中は指1本でずらす（本人 2026-11-26「写真取り込んだの拡大して見れない」）
+const Z = { s: 1, x: 0, y: 0 };
+function zoomApply() { const im = $('viewer').querySelector('img'); if (im) im.style.transform = `translate(${Z.x}px, ${Z.y}px) scale(${Z.s})`; }
+function zoomReset() { Z.s = 1; Z.x = 0; Z.y = 0; zoomApply(); }
+function zoomAt(cx, cy, ns) {
+  const im = $('viewer').querySelector('img'); if (!im) return;
+  ns = Math.max(1, Math.min(6, ns));
+  const r = im.parentNode.getBoundingClientRect(), base = im.offsetLeft, baseT = im.offsetTop;
+  const px = cx - r.left - base, py = cy - r.top - baseT;          // 画像の左上からの位置（画面上）
+  Z.x = px - (px - Z.x) * (ns / Z.s); Z.y = py - (py - Z.y) * (ns / Z.s); Z.s = ns;
+  if (Z.s === 1) { Z.x = 0; Z.y = 0; }
+  zoomApply();
+}
+(() => {
+  const v = $('viewer'); let p0 = null, last = 0, moved = false, tapT = null;
+  const dist = (t) => Math.hypot(t[0].clientX - t[1].clientX, t[0].clientY - t[1].clientY);
+  v.addEventListener('touchstart', (e) => {
+    moved = false;
+    if (e.touches.length === 2) p0 = { d: dist(e.touches), s: Z.s, cx: (e.touches[0].clientX + e.touches[1].clientX) / 2, cy: (e.touches[0].clientY + e.touches[1].clientY) / 2 };
+    else if (e.touches.length === 1) p0 = { x: e.touches[0].clientX, y: e.touches[0].clientY, ox: Z.x, oy: Z.y };
+  }, { passive: true });
+  v.addEventListener('touchmove', (e) => {
+    if (!p0) return; e.preventDefault(); moved = true;
+    if (e.touches.length === 2 && p0.d) zoomAt(p0.cx, p0.cy, p0.s * dist(e.touches) / p0.d);
+    else if (e.touches.length === 1 && p0.x !== undefined && Z.s > 1) { Z.x = p0.ox + e.touches[0].clientX - p0.x; Z.y = p0.oy + e.touches[0].clientY - p0.y; zoomApply(); }
+  }, { passive: false });
+  v.addEventListener('touchend', (e) => {
+    if (e.touches.length) { if (e.touches.length === 1) p0 = { x: e.touches[0].clientX, y: e.touches[0].clientY, ox: Z.x, oy: Z.y }; return; }
+    p0 = null;
+  }, { passive: true });
+  v.addEventListener('click', (e) => {
+    if (e.target.closest('.vx')) { v.classList.remove('show'); return; }
+    if (moved) return;
+    const now = Date.now();
+    if (now - last < 300) { clearTimeout(tapT); last = 0; Z.s > 1 ? zoomReset() : zoomAt(e.clientX, e.clientY, 2.5); return; }
+    last = now;
+    tapT = setTimeout(() => { if (Z.s === 1) v.classList.remove('show'); }, 300);
+  });
+  v.addEventListener('wheel', (e) => { e.preventDefault(); zoomAt(e.clientX, e.clientY, Z.s * (e.deltaY < 0 ? 1.2 : 1 / 1.2)); }, { passive: false });
+})();
 // メモの中の URL を押せるリンクにする（先に文字を無害化してから）
 function linkify(t) {
   return esc(t).replace(/https?:\/\/[^\s<>"']+/g, (u) => `<a href="${u}" target="_blank" rel="noopener noreferrer" class="lk">${u.length > 40 ? u.slice(0, 40) + '…' : u}</a>`);
@@ -892,7 +934,7 @@ function openSheet(o) {
     keep.filter((id) => !photoCache[id]).forEach((id) => loadPhoto(id).then((u) => { const im = box.querySelector(`[data-pid="${id}"]`); if (im) im.src = u; }).catch(() => {}));
   };
   const onFiles = async (files) => {
-    for (const f of [...files].slice(0, 5 - added.length)) { try { added.push(await shrink(f)); } catch (e) { toast(e.message); } }
+    for (const f of [...files].slice(0, 5 - added.length)) { try { added.push(await shrink(f, curList === PHOTO ? 2400 : 1600)); } catch (e) { toast(e.message); } }
     drawThumbs();
   };
   $('sPick').onchange = (e) => { onFiles(e.target.files); e.target.value = ''; };
@@ -1059,7 +1101,6 @@ function ask(msg, yes, label) {
   $('cfno').onclick = () => $('cf').classList.remove('show');
   $('cfyes').onclick = () => { $('cf').classList.remove('show'); yes(); };
 }
-document.getElementById('viewer').addEventListener('click', () => $('viewer').classList.remove('show'));
 function closeSheet() { $('sheet').classList.remove('show'); }
 $('sheet').addEventListener('click', (e) => { if (e.target.id === 'sheet') closeSheet(); });
 
