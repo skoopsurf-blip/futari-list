@@ -263,7 +263,7 @@ const LOCAL = /^(localhost|127\.0\.0\.1)$/.test(location.hostname);
 let api;
 // ---- 買い物リスト ⇄ 家にあるもの（本人 2026-11-26）：買ったら家へ・使い切ったら買い物へ・家にある物を買い物に足すと知らせる ----
 // 画面の版。開いたときと表に戻ったときに新しい版が出ていれば読み込み直す（iPhone が古い画面を使い回すため・2026-11-26）
-const APP_VER = '202611262026';
+const APP_VER = '202611262028';
 function checkVer() {
   if (location.protocol !== 'https:') return;
   fetch(location.pathname + '?v=' + Date.now(), { cache: 'no-store' }).then((r) => r.text()).then((t) => {
@@ -1094,7 +1094,8 @@ function openPrefs() {
       ${radio('date_desc', '日付順（未来→過去）')}
     </div>
     <div class="info">予定タブはいつも日付順、家にあるものは名前順。ピン留めはどの順番でも一番上。日付のないものは日付順のときは下に並ぶ。</div>
-    ${window.__mock ? '' : '<div class="card2" style="margin-top:14px"><button type="button" class="opt" id="pChangePin">暗証番号を変える</button></div>'}`;
+    ${window.__mock ? '' : '<div class="card2" style="margin-top:14px"><button type="button" class="opt" id="pChangePin">暗証番号を変える</button></div>'}
+    <div class="info" style="margin-top:14px;text-align:center">画面の版 ${APP_VER.slice(4, 6)}/${APP_VER.slice(6, 8)} ${APP_VER.slice(8, 10)}:${APP_VER.slice(10, 12)}</div>`;
   if ($('pChangePin')) $('pChangePin').onclick = changePin;
   $('pHist').onchange = () => { prefs.hist = $('pHist').checked; savePrefs(); };
   $('pGroup').onchange = () => { prefs.group = $('pGroup').checked; savePrefs(); render(); };
