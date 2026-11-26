@@ -359,6 +359,9 @@ const ICON = {
   chev: '<svg class="chev CLS" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>'
 };
 
+// 画面に出す名前（データは漢字のまま・本人 2026-11-26「アイコンの横の名前の表示をローマ字に」）
+const DISP = { '剛康': 'Takayasu', '杏実': 'Ami' };
+const dn = (n) => esc(DISP[n] || n || '');
 const CATS = ['野菜・果物', '肉・魚', '卵・乳製品', '漬物・加工品', '冷凍', '主食・麺・粉', '乾物・缶詰', '調味料', '飲み物', 'お菓子', '日用品', 'その他'];
 const prefs = Object.assign({ hist: true, count: true, order: 'new_top', group: true, cat: true }, JSON.parse(get('futari_prefs') || '{}'));
 const st = { items: [], lists: JSON.parse(get('futari_lists') || 'null') || ['予定', '買い物リスト', 'やることリスト'], tab: get('futari_tab') || '予定', uc: get('futari_uc') || '', users: JSON.parse(get('futari_users') || 'null') || ['', ''], busy: 0, sel: null, showDone: get('futari_showdone') !== '0' };
@@ -450,7 +453,7 @@ function sortItems(a, tab) {
   return a.slice().sort((x, y) => (!!x.pinned !== !!y.pinned) ? (x.pinned ? -1 : 1) : cmp(x, y));
 }
 function render() {
-  $('me').innerHTML = me() ? `${avOf(me())}${esc(me())}` : '名前を選ぶ';
+  $('me').innerHTML = me() ? `${avOf(me())}${dn(me())}` : '名前を選ぶ';
   if (st.lists.indexOf(st.tab) < 0) st.tab = st.lists[0];
   $('tabs').innerHTML = st.lists.map((l) => {
     const n = st.items.filter((o) => (o.list === l || (l === SHOP && o.list === STOCK && o.low && !twinOf(o, SHOP))) && !o.done).length;
@@ -513,7 +516,7 @@ function card(o) {
   const dk = o.done ? null : daysTo(o);
   const dc = isLate(o) ? 'late' : dk === 0 ? 'tdy' : dk === 1 ? 'tmr' : '';
   const due = o.due ? `<span class="due ${dc}">${fmtDue(o)}${dk >= 2 && dk <= 3 ? `<span class="left">あと${dk}日</span>` : ''}${remindOn(o) ? ICON.bell : ''}</span>` : '';
-  const sub = o.done && o.doneBy ? `<span class="sub">${esc(o.doneBy)}が済み</span>` : '';
+  const sub = o.done && o.doneBy ? `<span class="sub">${dn(o.doneBy)}が済み</span>` : '';
   const rp = o.repeat && !o.done ? `<span class="rp">↻ ${repLabel(o.repeat)}</span>` : '';
   const ei = o.list === STOCK && !o.done ? expInfo(o) : null; const ex = ei ? `<span class="ex ${ei.cls}">${ei.txt}</span>` : '';
   const meta = due || sub || rp || ex ? `<div class="meta">${due}${rp}${ex}${sub}</div>` : '';
@@ -536,7 +539,7 @@ function card(o) {
 }
 
 function chooseUser(then) {
-  $('askwho').innerHTML = CODES.map((c, i) => `<button data-u="${c}" class="${st.uc === c ? 'on' : ''}">${AVS[i]}${esc(st.users[i] || '')}</button>`).join('');
+  $('askwho').innerHTML = CODES.map((c, i) => `<button data-u="${c}" class="${st.uc === c ? 'on' : ''}">${AVS[i]}${dn(st.users[i])}</button>`).join('');
   $('ask').classList.add('show');
   $('ask')._then = then;
 }
@@ -815,7 +818,7 @@ function openSheet(o) {
     </div>
     <div class="line">
       <span class="ic">${SVG_FACE}</span>
-      <div class="assign" id="sAssign">${st.users.map((u, i) => `<button type="button" class="asg" data-as="${esc(u)}">${AVS[i]}<span>${esc(u)}</span></button>`).join('')}</div>
+      <div class="assign" id="sAssign">${st.users.map((u, i) => `<button type="button" class="asg" data-as="${esc(u)}">${AVS[i]}<span>${dn(u)}</span></button>`).join('')}</div>
       <button type="button" class="chip" id="sAll2">全員</button>
     </div>
     <div id="sDetail" class="detail">
@@ -848,8 +851,8 @@ function openSheet(o) {
       <button type="button" class="lnk" id="sPin"></button>
     </div>
     ${isNew ? '' : `<div class="hist">
-      <div class="hrow">${avOf(o.addedBy)}<span class="hk">作成</span><span class="hn">${esc(o.addedBy)}</span><span class="ht">${whenOf(o.addedAt)}</span></div>
-      ${o.done && o.doneAt ? `<div class="hrow">${avOf(o.doneBy)}<span class="hk">完了</span><span class="hn">${esc(o.doneBy)}</span><span class="ht">${whenOf(o.doneAt)}</span></div>` : ''}
+      <div class="hrow">${avOf(o.addedBy)}<span class="hk">作成</span><span class="hn">${dn(o.addedBy)}</span><span class="ht">${whenOf(o.addedAt)}</span></div>
+      ${o.done && o.doneAt ? `<div class="hrow">${avOf(o.doneBy)}<span class="hk">完了</span><span class="hn">${dn(o.doneBy)}</span><span class="ht">${whenOf(o.doneAt)}</span></div>` : ''}
     </div>
     <div class="acts"><button class="btn del" id="sDel">消す</button><button class="btn sub" id="sCancel">やめる</button><button class="btn" id="sSave">更新</button></div>`}
     ${isNew ? `<button class="send" id="sSave" aria-label="追加">${SVG_UP}</button>` : ''}`;
