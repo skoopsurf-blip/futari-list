@@ -27,8 +27,9 @@ header { position: sticky; top: 0; z-index: 4; background: var(--bg); padding: 1
 .top { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
 .brand { display: flex; align-items: center; gap: 7px; font-size: 16px; font-weight: 700; }
 .brand svg { width: 22px; height: 22px; color: var(--accent); }
-.me { display: flex; align-items: center; gap: 8px; border: 1px solid var(--line); border-radius: 22px; padding: 4px 12px 4px 4px; background: none; color: var(--text); font-size: 14px; }
-.me .av { width: 26px; height: 26px; }
+.me { display: flex; align-items: center; gap: 8px; border: 1px solid var(--line); border-radius: 22px; padding: 4px; background: none; color: var(--text); font-size: 14px; }
+.me .av { width: 30px; height: 30px; }
+.me:not(:has(.av)) { padding: 4px 12px; }
 .tabs { display: flex; gap: 6px; margin-top: 16px; overflow-x: auto; scrollbar-width: none; }
 .tabs::-webkit-scrollbar { display: none; }
 .tabs button { flex: none; border: 0; background: none; padding: 7px 14px; font-size: 15px; color: var(--text2); border-radius: 22px; font-weight: 600; white-space: nowrap; }
@@ -453,7 +454,7 @@ function sortItems(a, tab) {
   return a.slice().sort((x, y) => (!!x.pinned !== !!y.pinned) ? (x.pinned ? -1 : 1) : cmp(x, y));
 }
 function render() {
-  $('me').innerHTML = me() ? `${avOf(me())}${dn(me())}` : '名前を選ぶ';
+  $('me').innerHTML = me() ? `${avOf(me())}` : '名前を選ぶ';
   if (st.lists.indexOf(st.tab) < 0) st.tab = st.lists[0];
   $('tabs').innerHTML = st.lists.map((l) => {
     const n = st.items.filter((o) => (o.list === l || (l === SHOP && o.list === STOCK && o.low && !twinOf(o, SHOP))) && !o.done).length;
