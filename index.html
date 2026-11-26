@@ -262,6 +262,17 @@ const KEY_ = HASH.k || (() => { try { return localStorage.getItem('futari_k'); }
 const LOCAL = /^(localhost|127\.0\.0\.1)$/.test(location.hostname);
 let api;
 // ---- 買い物リスト ⇄ 家にあるもの（本人 2026-11-26）：買ったら家へ・使い切ったら買い物へ・家にある物を買い物に足すと知らせる ----
+// 画面の版。開いたときと表に戻ったときに新しい版が出ていれば読み込み直す（iPhone が古い画面を使い回すため・2026-11-26）
+const APP_VER = '202611261948';
+function checkVer() {
+  if (location.protocol !== 'https:') return;
+  fetch(location.pathname + '?v=' + Date.now(), { cache: 'no-store' }).then((r) => r.text()).then((t) => {
+    const m = /const APP_VER = '(\d+)'/.exec(t);
+    if (m && m[1] !== APP_VER && !(() => { try { return sessionStorage.getItem('futari_rl_' + m[1]); } catch (e) { return '1'; } })()) { try { sessionStorage.setItem('futari_rl_' + m[1], '1'); } catch (e) {} location.replace(location.pathname + '?v=' + m[1] + location.hash); }
+  }).catch(() => {});
+}
+checkVer();
+document.addEventListener('visibilitychange', () => { if (!document.hidden) checkVer(); });
 const SHOP = '買い物リスト', STOCK = '家にあるもの', PHOTO = '写真';
 const photoTitle = () => { const d = new Date(); return (d.getMonth() + 1) + '/' + d.getDate() + ' の写真'; };
 const normT = (s) => String(s || '').normalize('NFKC').toLowerCase().replace(/\s+/g, '').replace(/[ァ-ヶ]/g, (c) => String.fromCharCode(c.charCodeAt(0) - 0x60));
