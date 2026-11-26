@@ -439,7 +439,9 @@ function sortItems(a, tab) {
     return a !== b ? a - b : t(y.addedAt) - t(x.addedAt);
   };
   // 予定タブはいつも日付順（近い日が上）（本人 2026-11-26）
-  const cmp = tab === '予定' ? byDue(1) : prefs.order === 'manual' ? manual
+  // 家にあるものは名前順（あいうえお順）（本人 2026-11-26）
+  const byName = (x, y) => keyOf(x.title).localeCompare(keyOf(y.title), 'ja');
+  const cmp = tab === '予定' ? byDue(1) : tab === STOCK ? byName : prefs.order === 'manual' ? manual
     : prefs.order === 'new_bottom' ? (x, y) => t(x.addedAt) - t(y.addedAt)
     : prefs.order === 'date' ? byDue(1)
     : prefs.order === 'date_desc' ? byDue(-1)
@@ -633,7 +635,7 @@ let dragging = false, suppressClick = false;
     card.classList.remove('lifting'); card.style.transform = '';
     // 長押しして動かさずに離した → メニュー（消す・別のタブへ移す）
     if (!moved) { const id = card.dataset.drag; dragging = false; card = null; suppressClick = true; setTimeout(() => { suppressClick = false; }, 400); itemMenu(id); return; }
-    if (st.tab === '予定') { dragging = false; card = null; suppressClick = true; setTimeout(() => { suppressClick = false; }, 400); render(); toast('予定はいつも日付順で並ぶ'); return; }
+    if (st.tab === '予定' || st.tab === STOCK) { dragging = false; card = null; suppressClick = true; setTimeout(() => { suppressClick = false; }, 400); render(); toast(st.tab === STOCK ? '家にあるものは名前順で並ぶ' : '予定はいつも日付順で並ぶ'); return; }
     const ids = [...$('main').querySelectorAll('[data-drag]')].map((n) => n.dataset.drag);
     ids.forEach((id, i) => { const o = st.items.find((x) => x.id === id); if (o) o.sort = i; });
     if (prefs.order !== 'manual') { prefs.order = 'manual'; savePrefs(); toast('表示の順番を「自分で並べた順」にした'); }
@@ -1011,7 +1013,7 @@ function openPrefs() {
       ${radio('date', '日付順（近い日が上）')}
       ${radio('date_desc', '日付順（未来→過去）')}
     </div>
-    <div class="info">予定タブだけはいつも日付順。ピン留めはどの順番でも一番上。日付のないものは日付順のときは下に並ぶ。</div>
+    <div class="info">予定タブはいつも日付順、家にあるものは名前順。ピン留めはどの順番でも一番上。日付のないものは日付順のときは下に並ぶ。</div>
     ${window.__mock ? '' : '<div class="card2" style="margin-top:14px"><button type="button" class="opt" id="pChangePin">暗証番号を変える</button></div>'}`;
   if ($('pChangePin')) $('pChangePin').onclick = changePin;
   $('pHist').onchange = () => { prefs.hist = $('pHist').checked; savePrefs(); };
