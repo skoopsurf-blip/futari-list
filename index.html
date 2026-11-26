@@ -108,11 +108,28 @@ header { position: sticky; top: 0; z-index: 4; background: var(--bg); padding: 1
 .pbtn svg { width: 24px; height: 24px; }
 .pmark { display: inline-flex; align-items: center; gap: 3px; font-size: 12px; color: var(--text2); margin-top: 3px; }
 .pmark svg { width: 13px; height: 13px; }
+.tabrow .grip { color: var(--text2); font-size: 18px; flex: none; }
+.tabrow.lifting { position: relative; z-index: 5; background: var(--card2); box-shadow: 0 6px 18px rgba(0,0,0,.45); border-radius: 12px; }
+.rep { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; flex: 1; }
+.rep select, .rep input { background: var(--card2); color: var(--text); border: 1px solid var(--line); border-radius: 10px; padding: 6px 8px; font-size: 16px; }
+.rep input[type=number] { width: 64px; }
+.rep .wd { border: 1px solid var(--line); background: transparent; color: var(--text2); border-radius: 999px; width: 32px; height: 32px; font-size: 13px; }
+.rep .wd.on { background: var(--accent); border-color: var(--accent); color: #fff; }
+.meta .rp { color: var(--text2); font-size: 12px; margin-left: 6px; }
+.meta .ex { font-size: 12px; margin-left: 6px; color: var(--text2); }
+.meta .ex.soon { color: var(--accent); font-weight: 600; }
+.meta .ex.over { color: #FF6B6B; font-weight: 600; }
+#undo { position: fixed; left: 50%; bottom: calc(100px + var(--safe-b)); transform: translateX(-50%); background: #3A3A3E; color: #fff; padding: 8px 8px 8px 16px; border-radius: 22px; font-size: 14px; display: none; z-index: 61; align-items: center; gap: 10px; white-space: nowrap; }
+#undo.show { display: flex; }
+#undo button { border: 0; background: var(--accent); color: #fff; border-radius: 16px; padding: 6px 12px; font-size: 14px; font-weight: 600; }
+.pgrid { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 6px; }
+.pgrid img { width: 96px; height: 96px; object-fit: cover; border-radius: 10px; background: var(--card2); display: block; }
 .stk { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
 .stk .qb { width: 30px; height: 30px; border-radius: 50%; border: 0; background: var(--card2); color: var(--text); font-size: 18px; line-height: 1; }
 .stk .q { min-width: 22px; text-align: center; font-weight: 600; font-size: 15px; }
 .stk .lowb { border: 1px solid var(--line); background: transparent; color: var(--text2); border-radius: 999px; padding: 4px 9px; font-size: 12px; }
 .stk .lowb.on { background: var(--accent); border-color: var(--accent); color: #fff; }
+.item .from.has { color: #5DB7FF; border-color: #5DB7FF; }
 .item .from { font-size: 11px; color: var(--accent); border: 1px solid var(--accent); border-radius: 999px; padding: 1px 7px; margin-left: 6px; vertical-align: 1px; }
 #qn { width: 100%; margin-top: 10px; border: 1px solid var(--line); border-radius: 12px; padding: 12px; font-size: 20px; text-align: center; background: var(--card2); color: var(--text); }
 #viewer { position: fixed; inset: 0; z-index: 50; background: rgba(0,0,0,.92); display: none; align-items: center; justify-content: center; }
@@ -137,7 +154,7 @@ header { position: sticky; top: 0; z-index: 4; background: var(--bg); padding: 1
 #pin input:focus { outline: none; border-color: var(--accent); }
 .pinmsg { font-size: 13px; color: var(--text2); line-height: 1.6; }
 .tabrow { display: flex; align-items: center; gap: 10px; padding: 10px 2px; border-bottom: 1px solid var(--line); }
-.tabrow span:first-child { flex: 1; }
+.tabrow span:first-child:not(.grip), .tabrow .grip + span { flex: 1; }
 .tabrow .cnt { color: var(--text2); font-size: 13px; }
 .btn.sm { padding: 7px 14px; font-size: 14px; }
 .tabs .n { font-size: 12px; margin-left: 4px; opacity: .85; }
@@ -162,6 +179,11 @@ main { padding: 10px 12px calc(100px + var(--safe-b)); }
 .meta { font-size: 12px; color: var(--text2); margin-top: 2px; display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; }
 .meta .due { color: #CFCFD4; display: inline-flex; align-items: center; gap: 5px; }
 .meta .due.late { color: var(--late); }
+.meta .due.tdy { color: var(--accent); font-weight: 700; }
+.meta .due.tmr { color: var(--accent); }
+.meta .due .left { font-size: 11px; color: var(--accent); margin-left: 4px; }
+.nearbar { display: block; width: 100%; text-align: left; border: 0; background: #2E2218; color: var(--text); border-radius: 12px; padding: 8px 12px; margin-bottom: 8px; font-size: 13px; line-height: 1.6; }
+.nearbar b { color: var(--accent); font-weight: 700; margin-right: 6px; }
 .meta .bell { width: 13px; height: 13px; }
 .meta .sub { font-size: 12px; }
 .av { flex: none; width: 32px; height: 32px; border-radius: 50%; overflow: hidden; display: block; }
@@ -225,6 +247,7 @@ main { padding: 10px 12px calc(100px + var(--safe-b)); }
 <div id="viewer"></div>
 <div id="pin"></div>
 <div id="toast"></div>
+<div id="undo"><span id="undoMsg"></span><button id="undoBtn">元に戻す</button></div>
 
 <script>
 // データの出入り口（Google Apps Script）。鍵は URL の # の後ろ（k=）にだけ持たせ、このファイルには書かない
@@ -236,9 +259,40 @@ const KEY_ = HASH.k || (() => { try { return localStorage.getItem('futari_k'); }
 const LOCAL = /^(localhost|127\.0\.0\.1)$/.test(location.hostname);
 let api;
 // ---- 買い物リスト ⇄ 家にあるもの（本人 2026-11-26）：買ったら家へ・使い切ったら買い物へ・家にある物を買い物に足すと知らせる ----
-const SHOP = '買い物リスト', STOCK = '家にあるもの';
+const SHOP = '買い物リスト', STOCK = '家にあるもの', PHOTO = '写真';
+const photoTitle = () => { const d = new Date(); return (d.getMonth() + 1) + '/' + d.getDate() + ' の写真'; };
 const normT = (s) => String(s || '').normalize('NFKC').toLowerCase().replace(/\s+/g, '').replace(/[ァ-ヶ]/g, (c) => String.fromCharCode(c.charCodeAt(0) - 0x60));
+const W2 = ['日', '月', '火', '水', '木', '金', '土'];
+const repLabel = (r) => !r ? '' : r.t === 'day' ? '毎日' : r.t === 'week' ? '毎週 ' + r.days.slice().sort((a, b) => ((a + 6) % 7) - ((b + 6) % 7)).map((d) => W2[d]).join('・') : r.t === 'month' ? '毎月' + r.dom + '日' : r.t === 'nday' ? r.n + '日ごと' : r.n + '週ごと';
+const expInfo = (o) => { if (!o.exp) return null; const d = new Date(o.exp), t = new Date(); t.setHours(0, 0, 0, 0); const k = Math.round((new Date(d.getFullYear(), d.getMonth(), d.getDate()) - t) / 86400000); return { k, txt: '期限 ' + (d.getMonth() + 1) + '/' + d.getDate() + (k < 0 ? '（切れ）' : k === 0 ? '（今日）' : k <= 3 ? '（あと' + k + '日）' : ''), cls: k < 0 ? 'over' : k <= 3 ? 'soon' : '' }; };
+// 元に戻す：操作の前の形を覚えておき、5秒だけボタンを出す
+let undoT = null;
+function offerUndo(o, before, msg, extra) {
+  clearTimeout(undoT); $('undoMsg').textContent = msg; $('undo').classList.add('show'); $('toast').style.display = 'none';
+  $('undoBtn').onclick = () => {
+    $('undo').classList.remove('show'); clearTimeout(undoT);
+    Object.assign(o, before); st.items = st.items.filter((x) => !(x.origin === o.id && !x.done)); (extra || []).forEach(([x, b]) => Object.assign(x, b)); render();
+    call('restoreItem', [o.id, before]); (extra || []).forEach(([x, b]) => call('restoreItem', [x.id, b]));
+  };
+  undoT = setTimeout(() => $('undo').classList.remove('show'), 5000);
+}
+// ×で消す：すぐ見えなくして、5秒たってから本当に消す。その間は「元に戻す」で取り消せる
+const pendingDel = new Map();
+function flushDel(id) { const t = pendingDel.get(id); if (!t) return; clearTimeout(t); pendingDel.delete(id); call('deleteItem', [id]); }
+function delLater(o) {
+  const i = st.items.indexOf(o); if (i < 0) return;
+  st.items.splice(i, 1); render();
+  clearTimeout(undoT); $('undoMsg').textContent = '「' + o.title + '」を消した'; $('undo').classList.add('show'); $('toast').style.display = 'none';
+  pendingDel.set(o.id, setTimeout(() => flushDel(o.id), 5000));
+  $('undoBtn').onclick = () => { $('undo').classList.remove('show'); const t = pendingDel.get(o.id); if (t) { clearTimeout(t); pendingDel.delete(o.id); st.items.splice(Math.min(i, st.items.length), 0, o); render(); } };
+  undoT = setTimeout(() => $('undo').classList.remove('show'), 5000);
+}
+window.addEventListener('pagehide', () => { [...pendingDel.keys()].forEach(flushDel); });
+document.addEventListener('visibilitychange', () => { if (document.hidden) [...pendingDel.keys()].forEach(flushDel); });
+const snapOf = (o) => ({ list: o.list, done: !!o.done, doneBy: o.doneBy || '', doneAt: o.doneAt || '', low: !!o.low, qty: hasQty(o) ? Number(o.qty) : '' });
 const hasQty = (o) => o.qty !== null && o.qty !== undefined && o.qty !== '';
+const keyOf = (t) => normT(String(t || '').replace(/\s*[（(][^（）()]+[）)]\s*$/, ''));
+const twinOf = (o, list) => st.items.find((x) => x !== o && x.list === list && !x.done && keyOf(x.title) === keyOf(o.title));
 const swapTo = (list) => list === SHOP ? STOCK : list === STOCK ? SHOP : '';
 // ---- お試しモード：手元（localhost）で鍵なしで開いたときだけ、端末の中だけで動く偽のサーバーを使う ----
 if (!KEY_ && LOCAL) {
@@ -247,7 +301,7 @@ if (!KEY_ && LOCAL) {
   const load = () => { try { return JSON.parse(localStorage.getItem(KEY) || '[]'); } catch (e) { return []; } };
   const save = (a) => { try { localStorage.setItem(KEY, JSON.stringify(a)); } catch (e) {} };
   const LK = 'futari_mock_lists';
-  const lists = () => { try { return JSON.parse(localStorage.getItem(LK)) || ['予定', '買い物リスト', '家にあるもの', 'やることリスト']; } catch (e) { return ['予定', '買い物リスト', '家にあるもの', 'やることリスト']; } };
+  const lists = () => { try { return JSON.parse(localStorage.getItem(LK)) || ['予定', '買い物リスト', '家にあるもの', 'やることリスト', '写真']; } catch (e) { return ['予定', '買い物リスト', '家にあるもの', 'やることリスト', '写真']; } };
   const PK = 'futari_mock_photos';
   const pget = () => { try { return JSON.parse(localStorage.getItem(PK) || '{}'); } catch (e) { return {}; } };
   const psave = (urls) => { const m = pget(); const ids = (urls || []).map((u) => { const id = 'p' + Date.now() + Math.random().toString(36).slice(2, 6); m[id] = u; return id; }); localStorage.setItem(PK, JSON.stringify(m)); return ids; };
@@ -256,14 +310,16 @@ if (!KEY_ && LOCAL) {
     getAll: () => all(),
     addItem: (d) => { if (!d.title || !d.title.trim()) throw new Error('内容を入れてください'); const a = load(); a.push({ id: String(Date.now() + Math.random()), list: d.list, title: d.title.trim(), memo: d.memo || '', addedBy: d.user, addedAt: new Date().toISOString(), due: d.due ? new Date(d.due).toISOString() : '', allDay: !!d.allDay && !!d.due, remindMin: d.due ? Number(d.remindMin) : -1, pinned: !!d.pinned, assign: d.assign || [], photos: psave(d.newPhotos), done: false, doneBy: '', doneAt: '' }); save(a); return all(); },
     updateItem: (id, d) => { const a = load(); const o = a.find(x => x.id === id); if (!o) throw new Error('項目が見つかりません'); Object.assign(o, { list: d.list, title: d.title.trim(), memo: d.memo || '', due: d.due ? new Date(d.due).toISOString() : '', allDay: !!d.allDay && !!d.due, remindMin: d.due ? Number(d.remindMin) : -1, pinned: !!d.pinned, assign: d.assign || [], photos: (o.photos || []).filter((x) => !(d.removePhotos || []).includes(x)).concat(psave(d.newPhotos)) }); save(a); return all(); },
-    setDone: (id, done, user, bought) => { const a = load(); const o = a.find(x => x.id === id); if (!o) throw new Error('項目が見つかりません'); const to = done && lists().includes(STOCK) && lists().includes(SHOP) ? swapTo(o.list) : ''; if (to) { o.list = to; o.done = false; o.doneBy = ''; o.doneAt = ''; o.sort = null; o.low = false; if (o.qty !== null && o.qty !== undefined && o.qty !== '') o.qty = to === STOCK ? Math.max(0, Math.round(Number(bought) || 1)) : 0; } else { o.done = !!done; o.doneBy = done ? user : ''; o.doneAt = done ? new Date().toISOString() : ''; } save(a); return all(); },
+    setDone: (id, done, user, bought) => { const a = load(); const o = a.find(x => x.id === id); if (!o) throw new Error('項目が見つかりません'); const to = done && lists().includes(STOCK) && lists().includes(SHOP) && !(o.list === SHOP && o.noStock) ? swapTo(o.list) : ''; const kk = (t) => normT(String(t || '').replace(/\s*[（(][^（）()]+[）)]\s*$/, '')); const tw = to ? a.find(x => x !== o && x.list === to && !x.done && kk(x.title) === kk(o.title)) : null; if (tw) { o.done = true; o.doneBy = user; o.doneAt = new Date().toISOString(); if (to === STOCK) { tw.low = false; if (tw.qty !== null && tw.qty !== undefined && tw.qty !== '') tw.qty = Number(tw.qty) + Math.max(1, Math.round(Number(bought) || 1)); } } else if (to) { o.list = to; o.done = false; o.doneBy = ''; o.doneAt = ''; o.sort = null; o.low = false; if (o.qty !== null && o.qty !== undefined && o.qty !== '') o.qty = to === STOCK ? Math.max(0, Math.round(Number(bought) || 1)) : 0; } else { const was = !!o.done; o.done = !!done; o.doneBy = done ? user : ''; o.doneAt = done ? new Date().toISOString() : ''; if (!done && was && o.repeat) { save(a.filter(x => !(x.origin === o.id && !x.done))); return all(); } if (done && !was && o.repeat) { const nx = nextOf(o.repeat, o.due ? new Date(o.due) : (() => { const t = new Date(); t.setHours(0, 0, 0, 0); return t; })()); a.push(Object.assign({}, o, { id: String(Date.now() + Math.random()), done: false, doneBy: '', doneAt: '', due: nx.toISOString(), allDay: o.due ? o.allDay : true, photos: [], sort: null, origin: o.id, addedAt: new Date().toISOString() })); } } save(a); return all(); },
     deleteItem: (id) => { save(load().filter(x => x.id !== id)); return all(); },
+    restoreItem: (id, b) => { const a = load(); const o = a.find(x => x.id === id); Object.assign(o, { list: b.list, done: !!b.done, doneBy: b.doneBy, doneAt: b.doneAt, low: !!b.low, qty: b.qty === '' ? null : b.qty }); save(b.done ? a : a.filter(x => !(x.origin === id && !x.done))); return all(); },
     restock: (id, n) => { const a = load(); const o = a.find(x => x.id === id); o.low = false; if (o.qty !== null && o.qty !== undefined && o.qty !== '') o.qty = Number(o.qty) + n; save(a); return all(); },
     setLow: (id, low) => { const a = load(); const o = a.find(x => x.id === id); o.low = !!low; save(a); return all(); },
     stepQty: (id, d) => { const a = load(); const o = a.find(x => x.id === id); o.qty = Math.max(0, (Number(o.qty) || 0) + d); if (o.qty === 0 && o.list === STOCK) { o.list = SHOP; o.low = false; o.sort = null; } save(a); return all(); },
     clearDone: (list) => { save(load().filter(x => !(x.list === list && x.done))); return all(); },
     addList: (n) => { n = String(n || '').trim(); if (!n) throw new Error('タブの名前を入れてください'); const a = lists(); if (a.includes(n)) throw new Error('同じ名前のタブがもうあります'); a.push(n); localStorage.setItem(LK, JSON.stringify(a)); return all(); },
     getPhoto: (id) => { const u = pget()[id]; if (!u) throw new Error('その写真はありません'); return { id, url: u }; },
+    reorderLists: (names) => { localStorage.setItem(LK, JSON.stringify(names)); return all(); },
     reorder: (list, ids) => { const a = load(); a.forEach(x => { const i = ids.indexOf(x.id); if (x.list === list && i >= 0) x.sort = i; }); save(a); return all(); },
     undoneAll: (list) => { const a = load(); a.forEach(x => { if (x.list === list && x.done) { x.done = false; x.doneBy = ''; x.doneAt = ''; } }); save(a); return all(); },
     deleteItems: (ids) => { save(load().filter(x => !ids.includes(x.id))); return all(); },
@@ -271,10 +327,12 @@ if (!KEY_ && LOCAL) {
     deleteList: (n) => { if (load().some(x => x.list === n)) throw new Error('項目が残っているタブは消せません（先に項目を消してください）'); localStorage.setItem(LK, JSON.stringify(lists().filter(x => x !== n))); return all(); }
   };
   const _add = api.addItem, _upd = api.updateItem;
-  api.addItem = (d) => { const r = _add(d); const a = load(); a[a.length - 1].qty = d.qty === '' || d.qty === null || d.qty === undefined ? null : Number(d.qty); save(a); return all(); };
-  api.updateItem = (id, d) => { _upd(id, d); const a = load(); const o = a.find(x => x.id === id); o.qty = d.qty === '' || d.qty === null || d.qty === undefined ? null : Number(d.qty); save(a); return all(); };
+  const nextOf = (r, base) => { const d = new Date(base); if (r.t === 'day') d.setDate(d.getDate() + 1); else if (r.t === 'nday') d.setDate(d.getDate() + r.n); else if (r.t === 'nweek') d.setDate(d.getDate() + 7 * r.n); else if (r.t === 'week') { for (let i = 1; i <= 7; i++) { d.setDate(d.getDate() + 1); if (r.days.includes(d.getDay())) break; } } else { const y = d.getFullYear(), m = d.getMonth() + 1; d.setFullYear(y, m, Math.min(r.dom, new Date(y, m + 1, 0).getDate())); } const t = new Date(); t.setHours(0, 0, 0, 0); return d < t ? nextOf(r, d) : d; };
+  api.addItem = (d) => { if (d.list === PHOTO && !String(d.title || '').trim()) d = Object.assign({}, d, { title: photoTitle() }); const r = _add(d); const a = load(); a[a.length - 1].qty = d.qty === '' || d.qty === null || d.qty === undefined ? null : Number(d.qty); a[a.length - 1].repeat = d.repeat || null; a[a.length - 1].noStock = !!d.noStock; a[a.length - 1].exp = d.exp || ''; save(a); return all(); };
+  api.updateItem = (id, d) => { _upd(id, d); const a = load(); const o = a.find(x => x.id === id); o.qty = d.qty === '' || d.qty === null || d.qty === undefined ? null : Number(d.qty); o.repeat = d.repeat || null; o.exp = d.exp || ''; o.noStock = !!d.noStock; save(a); return all(); };
   window.__mock = true;
 }
+// (mock helpers above)
 function request(fn, args) {
   if (window.__mock) return new Promise((ok, ng) => setTimeout(() => { try { ok(api[fn](...args)); } catch (e) { ng(e); } }, 150));
   if (!KEY_) return Promise.reject(new Error('鍵つきのURLで開いてね'));
@@ -290,9 +348,10 @@ const REMIND = [
 const REMIND_ALLDAY = [{ v: -1, t: '通知なし' }, { v: 180, t: '前日 21時' }, { v: 900, t: '前日 9時' }, { v: 0, t: '当日 0時' }];
 
 // 2人のアイコン（オリジナルの似顔絵ふうの絵）
+// アイコンは本人が Gemini で作った画像を切り出したもの（2026-11-26）
 const AVS = [
-  `<svg class="av" viewBox="0 0 48 48"><circle cx="24" cy="24" r="24" fill="#CFEDE8"/><path d="M8 48c1-9 8-13 16-13s15 4 16 13z" fill="#4FB3A9"/><circle cx="24" cy="23" r="10" fill="#F6D2B3"/><path d="M13.5 21c0-7 4.5-10.5 10.5-10.5S34.5 14 34.5 21c-2-3-5-4.5-10.5-4.5S15.5 18 13.5 21z" fill="#3A2E2A"/><circle cx="20.3" cy="24" r="1.3" fill="#3A2E2A"/><circle cx="27.7" cy="24" r="1.3" fill="#3A2E2A"/><path d="M21.5 28.3q2.5 2 5 0" stroke="#B5684E" stroke-width="1.4" fill="none" stroke-linecap="round"/></svg>`,
-  `<svg class="av" viewBox="0 0 48 48"><circle cx="24" cy="24" r="24" fill="#F8D3DD"/><path d="M11 40c-2-6-2-14 1-19 2-7 7-10 12-10s10 3 12 10c3 5 3 13 1 19z" fill="#5A3A33"/><path d="M8 48c1-9 8-13 16-13s15 4 16 13z" fill="#E46A8B"/><circle cx="24" cy="23.5" r="9.5" fill="#F8D8C0"/><path d="M14.5 22c1-6 4.5-8.5 9.5-8.5s8.5 2.5 9.5 8.5c-3-2.5-6-3.5-9.5-6.5-2.5 3-6 5-9.5 6.5z" fill="#5A3A33"/><circle cx="20.5" cy="24.5" r="1.25" fill="#3A2E2A"/><circle cx="27.5" cy="24.5" r="1.25" fill="#3A2E2A"/><circle cx="18.5" cy="27.5" r="1.6" fill="#F4A6B5" opacity=".7"/><circle cx="29.5" cy="27.5" r="1.6" fill="#F4A6B5" opacity=".7"/><path d="M22 28.6q2 1.6 4 0" stroke="#C0604F" stroke-width="1.3" fill="none" stroke-linecap="round"/></svg>`
+  `<img class="av" src="av_t.png" alt="">`,
+  `<img class="av" src="av_a.png" alt="">`
 ];
 const ICON = {
   check: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>',
@@ -352,6 +411,8 @@ function fmtDue(o) {
   const rel = diff === 0 ? '今日' : diff === 1 ? '明日' : diff === -1 ? '昨日' : (d.getMonth() + 1) + '/' + d.getDate() + '(' + W[d.getDay()] + ')';
   return o.allDay ? rel : rel + ' ' + d.getHours() + ':' + String(d.getMinutes()).padStart(2, '0');
 }
+// 今日から何日先か（日付だけで数える）
+function daysTo(o) { if (!o.due) return null; const d = new Date(o.due), t = new Date(); return Math.round((new Date(d.getFullYear(), d.getMonth(), d.getDate()) - new Date(t.getFullYear(), t.getMonth(), t.getDate())) / 86400000); }
 function isLate(o) {
   if (!o.due || o.done) return false;
   const d = new Date(o.due);
@@ -366,7 +427,7 @@ function ago(iso) {
 }
 function remindOn(o) { return !!o.due && o.remindMin >= 0; }
 
-function sortItems(a) {
+function sortItems(a, tab) {
   const t = (x) => new Date(x).getTime() || 0;
   const byDue = (dir) => (x, y) => {
     if (x.due && y.due) return dir * (t(x.due) - t(y.due));
@@ -377,7 +438,8 @@ function sortItems(a) {
     const a = x.sort == null ? -1 : x.sort, b = y.sort == null ? -1 : y.sort;
     return a !== b ? a - b : t(y.addedAt) - t(x.addedAt);
   };
-  const cmp = prefs.order === 'manual' ? manual
+  // 予定タブはいつも日付順（近い日が上）（本人 2026-11-26）
+  const cmp = tab === '予定' ? byDue(1) : prefs.order === 'manual' ? manual
     : prefs.order === 'new_bottom' ? (x, y) => t(x.addedAt) - t(y.addedAt)
     : prefs.order === 'date' ? byDue(1)
     : prefs.order === 'date_desc' ? byDue(-1)
@@ -388,17 +450,17 @@ function render() {
   $('me').innerHTML = me() ? `${avOf(me())}${esc(me())}` : '名前を選ぶ';
   if (st.lists.indexOf(st.tab) < 0) st.tab = st.lists[0];
   $('tabs').innerHTML = st.lists.map((l) => {
-    const n = st.items.filter((o) => (o.list === l || (l === SHOP && o.list === STOCK && o.low)) && !o.done).length;
+    const n = st.items.filter((o) => (o.list === l || (l === SHOP && o.list === STOCK && o.low && !twinOf(o, SHOP))) && !o.done).length;
     return `<button data-tab="${esc(l)}" class="${st.tab === l ? 'on' : ''}">${esc(l)}${n && prefs.count ? `<span class="n">${n}</span>` : ''}</button>`;
   }).join('');
   const onTab = $('tabs').querySelector('.on');
   if (onTab) { const t = $('tabs'); const l = onTab.offsetLeft - t.offsetLeft, r = l + onTab.offsetWidth; if (l < t.scrollLeft) t.scrollLeft = l - 8; else if (r > t.scrollLeft + t.clientWidth) t.scrollLeft = r - t.clientWidth + 8; }
   const mine = st.items.filter((o) => o.list === st.tab);
-  let open = sortItems(mine.filter((o) => !o.done));
-  if (st.tab === STOCK) open = open.filter((o) => o.low).concat(open.filter((o) => !o.low));
+  let open = sortItems(mine.filter((o) => !o.done), st.tab);
+  if (st.tab === STOCK) { const rk = (o) => { const e = expInfo(o); return e && e.k <= 3 ? 0 : o.low ? 1 : 2; }; open = open.map((o, i) => [o, i]).sort((x, y) => rk(x[0]) - rk(y[0]) || (rk(x[0]) === 0 ? new Date(x[0].exp) - new Date(y[0].exp) : 0) || x[1] - y[1]).map((x) => x[0]); }
   const done = mine.filter((o) => o.done).sort((x, y) => new Date(y.doneAt) - new Date(x.doneAt));
   let h = '';
-  const lows = st.tab === SHOP ? st.items.filter((o) => o.list === STOCK && !o.done && o.low) : [];
+  const lows = st.tab === SHOP ? st.items.filter((o) => o.list === STOCK && !o.done && o.low && !twinOf(o, SHOP)) : [];
   if (!open.length && !done.length && !lows.length) h = `<div class="empty">まだ何もない<br>右下の ＋ から追加してね</div>`;
   else if (!open.length && !lows.length) h = `<div class="empty">ぜんぶ済んだ</div>`;
   const grouped = prefs.group && /買い物/.test(st.tab);
@@ -424,7 +486,11 @@ function render() {
     h += `<div class="sec"><button data-act="toggleDone">${ICON.chev.replace('CLS', st.showDone ? 'open' : '')}完了したもの ${done.length}</button><button class="more" data-act="doneMenu" aria-label="完了したものの操作">…</button></div>`;
     if (st.showDone) h += done.map(card).join('');
   }
-  $('main').innerHTML = `<div class="tools">${st.sel ? '<button id="selEnd" class="txt">キャンセル</button>' : '<button id="selStart" class="txt">選択</button><button id="menu" aria-label="表示の設定">' + SVG_MENU + '</button>'}</div>` + h;
+  // どのタブでも、今日・明日の予定を上に1行ずつ出す（押すと予定タブへ）（本人 2026-11-26）
+  const near = st.tab === '予定' || st.sel ? [] : st.items.filter((o) => o.list === '予定' && !o.done && o.due && !isLate(o) && daysTo(o) >= 0 && daysTo(o) <= 1).sort((x, y) => new Date(x.due) - new Date(y.due));
+  const nearHtml = near.length ? `<button type="button" class="nearbar" data-gotab="予定">${near.slice(0, 3).map((o) => `<div><b>${daysTo(o) === 0 ? '今日' : '明日'}</b>${esc(o.title)}${o.allDay ? '' : ' ' + new Date(o.due).getHours() + ':' + String(new Date(o.due).getMinutes()).padStart(2, '0')}</div>`).join('')}${near.length > 3 ? `<div>ほか${near.length - 3}件</div>` : ''}</button>` : '';
+  $('main').innerHTML = nearHtml + `<div class="tools">${st.sel ? '<button id="selEnd" class="txt">キャンセル</button>' : '<button id="selStart" class="txt">選択</button><button id="menu" aria-label="表示の設定">' + SVG_MENU + '</button>'}</div>` + h;
+  if (st.tab === PHOTO) $('main').querySelectorAll('img[data-pid]').forEach((im) => { const id = im.dataset.pid; if (!photoCache[id]) loadPhoto(id).then((u) => { im.src = u; }).catch(() => {}); });
   $('selbar').classList.toggle('show', !!st.sel);
   $('fab').style.display = st.sel ? 'none' : '';
   if (st.sel) {
@@ -434,9 +500,13 @@ function render() {
   }
 }
 function card(o) {
-  const due = o.due ? `<span class="due ${isLate(o) ? 'late' : ''}">${fmtDue(o)}${remindOn(o) ? ICON.bell : ''}</span>` : '';
+  const dk = o.done ? null : daysTo(o);
+  const dc = isLate(o) ? 'late' : dk === 0 ? 'tdy' : dk === 1 ? 'tmr' : '';
+  const due = o.due ? `<span class="due ${dc}">${fmtDue(o)}${dk >= 2 && dk <= 3 ? `<span class="left">あと${dk}日</span>` : ''}${remindOn(o) ? ICON.bell : ''}</span>` : '';
   const sub = o.done && o.doneBy ? `<span class="sub">${esc(o.doneBy)}が済み</span>` : '';
-  const meta = due || sub ? `<div class="meta">${due}${sub}</div>` : '';
+  const rp = o.repeat && !o.done ? `<span class="rp">↻ ${repLabel(o.repeat)}</span>` : '';
+  const ei = o.list === STOCK && !o.done ? expInfo(o) : null; const ex = ei ? `<span class="ex ${ei.cls}">${ei.txt}</span>` : '';
+  const meta = due || sub || rp || ex ? `<div class="meta">${due}${rp}${ex}${sub}</div>` : '';
   if (st.sel) {
     return `<div class="item sel ${st.sel.has(o.id) ? 'picked' : ''} ${o.done ? 'done' : ''}" data-pick="${esc(o.id)}">
     <span class="pk">${ICON.check}</span>
@@ -446,10 +516,10 @@ function card(o) {
   return `<div class="item ${o.done ? 'done' : ''}" ${o.done ? '' : `data-drag="${esc(o.id)}"`}>
     <button class="chk" data-chk="${esc(o.id)}" aria-label="${o.done ? '済みを戻す' : '済みにする'}">${ICON.check}</button>
     <div class="body" data-edit="${esc(o.id)}">
-      <div class="ttl">${o.pinned && !o.done ? `<span class="pin">${SVG_PIN}</span>` : ''}${esc(o.title)}</div>
+      <div class="ttl">${o.pinned && !o.done ? `<span class="pin">${SVG_PIN}</span>` : ''}${esc(o.title)}${o.list === SHOP && !o.done ? ((tw) => !tw ? '' : tw.low ? '<span class="from">少ない</span>' : '<span class="from has">家にある</span>')(twinOf(o, STOCK)) : ''}</div>
       ${o.memo ? `<div class="memo">${linkify(o.memo)}</div>` : ''}
       ${meta}
-      ${(o.photos || []).length ? `<div class="pmark">${SVG_IMG}${o.photos.length}</div>` : ''}
+      ${(o.photos || []).length ? (o.list === PHOTO ? `<div class="pgrid">${o.photos.map((id) => `<img data-view="${esc(id)}" data-pid="${esc(id)}" src="${photoCache[id] || ''}" alt="">`).join('')}</div>` : `<div class="pmark">${SVG_IMG}${o.photos.length}</div>`) : ''}
     </div>
     ${o.list === STOCK && !o.done ? `<div class="stk">${hasQty(o) ? `<button class="qb" data-qm="${esc(o.id)}" aria-label="1つ使った">−</button><span class="q">${Number(o.qty)}</span>` : ''}<button class="lowb ${o.low ? 'on' : ''}" data-low="${esc(o.id)}">少ない</button></div>` : ''}
     ${assignAv(o, true)}</div>`;
@@ -475,26 +545,42 @@ $('main').addEventListener('click', (e) => {
   if (e.target.closest('a.lk')) return;
   const rs = e.target.closest('[data-restock]');
   if (rs) { const o = st.items.find((x) => x.id === rs.dataset.restock); if (!o) return;
-    const go = (n) => { o.low = false; if (hasQty(o)) o.qty = Number(o.qty) + n; render(); toast('買ったので「少ない」を外した'); call('restock', [o.id, n]); };
+    const before = snapOf(o);
+    const go = (n) => { o.low = false; if (hasQty(o)) o.qty = Number(o.qty) + n; render(); offerUndo(o, before, '「少ない」を外した'); call('restock', [o.id, n]); };
     if (hasQty(o)) { ask('「' + esc(o.title) + '」をいくつ買った？<input id="qn" type="number" inputmode="numeric" min="1" max="999" value="1">', () => go(Math.max(1, Math.round(Number($('qn').value) || 1))), 'OK'); setTimeout(() => { const q = $('qn'); if (q) { q.focus(); q.select(); } }, 50); }
     else go(1);
     return; }
   const lb = e.target.closest('[data-low]');
   if (lb) { const o = st.items.find((x) => x.id === lb.dataset.low); if (!o) return; o.low = !o.low; render(); call('setLow', [o.id, o.low]); return; }
   const qm = e.target.closest('[data-qm]');
-  if (qm) { const o = st.items.find((x) => x.id === qm.dataset.qm); if (!o) return; o.qty = Math.max(0, Number(o.qty) - 1); if (o.qty === 0 && st.lists.includes(SHOP)) { o.list = SHOP; o.low = false; toast('なくなったので「買い物リスト」へ移した'); } render(); call('stepQty', [o.id, -1]); return; }
+  if (qm) { const o = st.items.find((x) => x.id === qm.dataset.qm); if (!o) return; const before = snapOf(o); setTimeout(() => offerUndo(o, before, o.list === SHOP ? '「買い物リスト」へ移した' : '1つ減らした'), 0); o.qty = Math.max(0, Number(o.qty) - 1); if (o.qty === 0 && st.lists.includes(SHOP)) { o.list = SHOP; o.low = false; } render(); call('stepQty', [o.id, -1]); return; }
   const c = e.target.closest('[data-chk]');
   if (c) {
     const o = st.items.find((x) => x.id === c.dataset.chk); if (!o) return;
     needUser(() => {
-      const to = !o.done && st.lists.includes(STOCK) && st.lists.includes(SHOP) ? swapTo(o.list) : '';
-      const move = (n) => { o.list = to; o.sort = null; o.low = false; if (hasQty(o)) o.qty = to === STOCK ? n : 0; render(); toast(to === STOCK ? '買ったので「家にあるもの」へ移した' : '使い切ったので「買い物リスト」へ戻した'); call('setDone', [o.id, true, me(), n]); };
+      const to = !o.done && st.lists.includes(STOCK) && st.lists.includes(SHOP) && !(o.list === SHOP && o.noStock) ? swapTo(o.list) : '';
+      const before = snapOf(o);
+      const tw = to ? twinOf(o, to) : null;
+      if (tw) {
+        const tb = snapOf(tw);
+        const merge = (n) => { o.done = true; o.doneBy = me(); o.doneAt = new Date().toISOString(); if (to === STOCK) { tw.low = false; if (hasQty(tw)) tw.qty = Number(tw.qty) + n; } render(); offerUndo(o, before, to === STOCK ? '「家にあるもの」の「' + tw.title + '」に合わせた' : '「買い物リスト」に入っている', [[tw, tb]]); call('setDone', [o.id, true, me(), n]); };
+        if (to === STOCK && hasQty(tw)) { ask('「' + esc(tw.title) + '」をいくつ買った？<input id="qn" type="number" inputmode="numeric" min="1" max="999" value="1">', () => merge(Math.max(1, Math.round(Number($('qn').value) || 1))), 'OK'); setTimeout(() => { const q = $('qn'); if (q) { q.focus(); q.select(); } }, 50); return; }
+        merge(1); return;
+      }
+      const move = (n) => { o.list = to; o.sort = null; o.low = false; if (hasQty(o)) o.qty = to === STOCK ? n : 0; render(); offerUndo(o, before, to === STOCK ? '「家にあるもの」へ移した' : '「買い物リスト」へ戻した'); call('setDone', [o.id, true, me(), n]); };
       if (to === STOCK && hasQty(o)) { ask('「' + esc(o.title) + '」をいくつ買った？<input id="qn" type="number" inputmode="numeric" min="1" max="999" value="1">', () => move(Math.max(1, Math.round(Number($('qn').value) || 1))), '家にあるものへ'); setTimeout(() => { const q = $('qn'); if (q) { q.focus(); q.select(); } }, 50); return; }
       if (to) { move(1); return; }
-      o.done = !o.done; o.doneBy = o.done ? me() : ''; o.doneAt = new Date().toISOString(); render(); call('setDone', [o.id, o.done, me()]);
+      o.done = !o.done; o.doneBy = o.done ? me() : ''; o.doneAt = new Date().toISOString();
+      if (!o.done && o.repeat) st.items = st.items.filter((x) => !(x.origin === o.id && !x.done));  // 戻したら次の回を消す（本人 2026-11-26）
+      render(); call('setDone', [o.id, o.done, me()]);
+      if (o.done) offerUndo(o, Object.assign(before, { list: o.list }), o.repeat ? '済みにした（次の回を作った）' : '済みにした');
     });
     return;
   }
+  const gt = e.target.closest('[data-gotab]');
+  if (gt) { st.tab = gt.dataset.gotab; put('futari_tab', st.tab); render(); window.scrollTo(0, 0); return; }
+  const pv = e.target.closest('[data-view]');
+  if (pv) { const id = pv.dataset.view; loadPhoto(id).then(viewPhoto).catch((er) => toast(er.message)); return; }
   const ed = e.target.closest('[data-edit]');
   if (ed) { const o = st.items.find((x) => x.id === ed.dataset.edit); if (o) openSheet(o); return; }
   const a = e.target.closest('[data-act]');
@@ -514,14 +600,14 @@ $('addtab').addEventListener('click', openTabs);
 // 長押しで並べ替え（未完了の項目だけ）。動かしたら表示の順番を「自分で並べた順」にして、順番をサーバーへ保存
 let dragging = false, suppressClick = false;
 (() => {
-  let timer = null, card = null, sy = 0, sx = 0, base = 0;
+  let timer = null, card = null, sy = 0, sx = 0, base = 0, moved = false;
   const cancel = () => { clearTimeout(timer); timer = null; };
   document.addEventListener('touchstart', (e) => {
     const c = e.target.closest('[data-drag]');
     if (!c || st.sel || $('sheet').classList.contains('show')) return;
     sy = e.touches[0].clientY; sx = e.touches[0].clientX;
     timer = setTimeout(() => {
-      timer = null; dragging = true; card = c; base = sy;
+      timer = null; dragging = true; card = c; base = sy; moved = false;
       card.classList.add('lifting');
       if (navigator.vibrate) navigator.vibrate(15);
     }, 450);
@@ -531,6 +617,7 @@ let dragging = false, suppressClick = false;
     if (timer && (Math.abs(y - sy) > 8 || Math.abs(x - sx) > 8)) cancel();
     if (!dragging || !card) return;
     e.preventDefault();
+    if (Math.abs(y - sy) > 6) moved = true;
     card.style.transform = `translateY(${y - base}px)`;
     const sibs = [...card.parentNode.querySelectorAll('[data-drag]')].filter((n) => n !== card);
     for (const n of sibs) {
@@ -544,6 +631,9 @@ let dragging = false, suppressClick = false;
     cancel();
     if (!dragging || !card) return;
     card.classList.remove('lifting'); card.style.transform = '';
+    // 長押しして動かさずに離した → メニュー（消す・別のタブへ移す）
+    if (!moved) { const id = card.dataset.drag; dragging = false; card = null; suppressClick = true; setTimeout(() => { suppressClick = false; }, 400); itemMenu(id); return; }
+    if (st.tab === '予定') { dragging = false; card = null; suppressClick = true; setTimeout(() => { suppressClick = false; }, 400); render(); toast('予定はいつも日付順で並ぶ'); return; }
     const ids = [...$('main').querySelectorAll('[data-drag]')].map((n) => n.dataset.drag);
     ids.forEach((id, i) => { const o = st.items.find((x) => x.id === id); if (o) o.sort = i; });
     if (prefs.order !== 'manual') { prefs.order = 'manual'; savePrefs(); toast('表示の順番を「自分で並べた順」にした'); }
@@ -554,8 +644,61 @@ let dragging = false, suppressClick = false;
   document.addEventListener('touchend', end, { passive: true });
   document.addEventListener('touchcancel', end, { passive: true });
 })();
+// タブの管理画面で長押し（指でもマウスでも）してタブの順番を変える（本人 2026-11-26）
+(() => {
+  let timer = null, row = null, sy = 0, base = 0, on = false;
+  const yOf = (e) => (e.touches ? e.touches[0].clientY : e.clientY);
+  const start = (e) => {
+    const r = e.target.closest('[data-tabdrag]'); if (!r || e.target.closest('button')) return;
+    sy = yOf(e);
+    timer = setTimeout(() => { timer = null; on = true; row = r; base = sy; row.classList.add('lifting'); if (navigator.vibrate) navigator.vibrate(15); }, 450);
+  };
+  const move = (e) => {
+    const y = yOf(e);
+    if (timer && Math.abs(y - sy) > 8) { clearTimeout(timer); timer = null; }
+    if (!on || !row) return;
+    if (e.cancelable) e.preventDefault();
+    row.style.transform = `translateY(${y - base}px)`;
+    for (const n of [...row.parentNode.querySelectorAll('[data-tabdrag]')].filter((x) => x !== row)) {
+      const r = n.getBoundingClientRect(), mid = r.top + r.height / 2;
+      const before = row.compareDocumentPosition(n) & Node.DOCUMENT_POSITION_PRECEDING;
+      if ((before && y < mid) || (!before && y > mid)) { const old = row.getBoundingClientRect().top; before ? n.before(row) : n.after(row); base += row.getBoundingClientRect().top - old; row.style.transform = `translateY(${y - base}px)`; if (before) break; }
+    }
+  };
+  const end = () => {
+    clearTimeout(timer); timer = null;
+    if (!on || !row) return;
+    row.classList.remove('lifting'); row.style.transform = '';
+    const names = [...row.parentNode.querySelectorAll('[data-tabdrag]')].map((n) => n.dataset.tabdrag);
+    on = false; row = null; suppressClick = true; setTimeout(() => { suppressClick = false; }, 400);
+    if (names.join('\n') === st.lists.join('\n')) return;
+    st.lists = names; put('futari_lists', JSON.stringify(names)); render();
+    call('reorderLists', [names]);
+  };
+  document.addEventListener('touchstart', start, { passive: true });
+  document.addEventListener('touchmove', move, { passive: false });
+  document.addEventListener('touchend', end, { passive: true });
+  document.addEventListener('touchcancel', end, { passive: true });
+  document.addEventListener('mousedown', start);
+  document.addEventListener('mousemove', move);
+  document.addEventListener('mouseup', end);
+})();
 document.addEventListener('click', (e) => { if (suppressClick) { e.stopPropagation(); e.preventDefault(); } }, true);
-document.addEventListener('contextmenu', (e) => { if (e.target.closest('[data-drag]')) e.preventDefault(); });
+document.addEventListener('contextmenu', (e) => { const c = e.target.closest('[data-drag]'); if (!c) return; e.preventDefault(); if (!('ontouchstart' in window) && !st.sel) itemMenu(c.dataset.drag); });
+// 長押しのメニュー（本人 2026-11-26「長押しで移動と削除を選ぶのはどう？」）
+function itemMenu(id) {
+  const o = st.items.find((x) => x.id === id); if (!o) return;
+  $('panel').innerHTML = `<div class="grab"></div><div class="ph">${esc(o.title)}</div><div class="card2">`
+    + `<button type="button" class="opt" id="imMove">別のタブへ移す</button><button type="button" class="opt danger" id="imDel">消す</button></div>`
+    + `<div class="acts" style="margin-top:10px"><button class="btn sub" id="imCancel">やめる</button></div>`;
+  $('imCancel').onclick = closeSheet;
+  $('imDel').onclick = () => { closeSheet(); delLater(o); };
+  $('imMove').onclick = () => {
+    $('panel').innerHTML = `<div class="grab"></div><div class="ph">「${esc(o.title)}」をどのタブへ移す？</div><div class="card2">${st.lists.filter((l) => l !== o.list).map((l) => `<button type="button" class="opt" data-mv="${esc(l)}">${esc(l)}</button>`).join('')}</div>`;
+    $('panel').querySelectorAll('[data-mv]').forEach((b) => b.onclick = () => { closeSheet(); const before = snapOf(o); o.list = b.dataset.mv; render(); offerUndo(o, before, '「' + b.dataset.mv + '」へ移した'); call('moveItems', [[o.id], b.dataset.mv]); });
+  };
+  $('sheet').classList.add('show');
+}
 
 // 横にスライドしてタブを移る（左へ＝次のタブ・右へ＝前のタブ）。縦のスクロールと区別するため、横に60px以上・縦の1.5倍以上動いたときだけ
 (() => {
@@ -641,7 +784,7 @@ function viewPhoto(url) { $('viewer').innerHTML = `<img src="${url}" alt="">`; $
 function linkify(t) {
   return esc(t).replace(/https?:\/\/[^\s<>"']+/g, (u) => `<a href="${u}" target="_blank" rel="noopener noreferrer" class="lk">${u.length > 40 ? u.slice(0, 40) + '…' : u}</a>`);
 }
-function placeholderOf(list) { return list === '予定' ? '予定を入力' : /買い物/.test(list) ? '買うものを入力' : 'やることを入力'; }
+function placeholderOf(list) { return list === PHOTO ? '名前（空なら日付）' : list === '予定' ? '予定を入力' : /買い物/.test(list) ? '買うものを入力' : 'やることを入力'; }
 function dayLabel(dv) { if (!dv) return ''; const [y, m, d] = dv.split('-').map(Number); return fmtDue({ due: new Date(y, m - 1, d).toISOString(), allDay: true }); }
 function openSheet(o) {
   const isNew = !o;
@@ -675,6 +818,14 @@ function openSheet(o) {
       <span class="ic">${SVG_MEMO}</span>
       <textarea id="sMemo" class="memoin" rows="1" maxlength="1000" placeholder="メモ・URLを入力">${o ? esc(o.memo) : ''}</textarea>
     </div>
+    ${list !== STOCK && list !== PHOTO && list !== SHOP ? `<div class="line"><span class="ic" style="font-weight:700">↻</span><div class="rep" id="sRep">
+      <select id="rT"><option value="">繰り返さない</option><option value="day">毎日</option><option value="week">毎週</option><option value="month">毎月</option><option value="nday">○日ごと</option><option value="nweek">○週ごと</option></select>
+      <span id="rWk">${[1, 2, 3, 4, 5, 6, 0].map((d) => `<button type="button" class="wd" data-wd="${d}">${W2[d]}</button>`).join('')}</span>
+      <span id="rDom"><input type="number" id="rDomV" min="1" max="31" inputmode="numeric"> 日</span>
+      <span id="rN"><input type="number" id="rNV" min="1" max="365" inputmode="numeric" value="2"> <span id="rNu"></span></span>
+    </div></div>` : ''}
+    ${list === STOCK ? `<div class="line"><span class="ic" style="font-size:12px;font-weight:700">期限</span><input type="date" id="sExp" class="memoin" value="${o && o.exp ? (() => { const d = new Date(o.exp); return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()); })() : ''}"><button type="button" class="clr" id="sExpClr">消す</button></div>` : ''}
+    ${list === SHOP ? `<div class="chkline" style="padding:10px 2px;border-bottom:1px solid var(--line)"><input type="checkbox" id="sToStock" ${o && o.noStock ? '' : 'checked'}><label for="sToStock">買ったら「家にあるもの」へ入れる（1回きりの物は外す）</label></div>` : ''}
     ${list === SHOP || list === STOCK ? `<div class="line"><span class="ic" style="font-weight:700">#</span><input id="sQty" type="number" inputmode="numeric" min="0" max="999" class="memoin" placeholder="数（ストック品だけ・空欄なら数えない）" value="${o && hasQty(o) ? Number(o.qty) : ''}"></div>` : ''}
     <div class="line">
       <span class="ic">${SVG_IMG}</span>
@@ -743,6 +894,18 @@ function openSheet(o) {
   syncPin();
   $('sPin').onclick = () => { pinned = !pinned; syncPin(); };
   fillRem(); syncDay();
+  if ($('sRep')) {
+    const r0 = o && o.repeat ? o.repeat : null; const wk = new Set(r0 && r0.t === 'week' ? r0.days : []);
+    $('rT').value = r0 ? r0.t : '';
+    $('rDomV').value = r0 && r0.t === 'month' ? r0.dom : (o && o.due ? new Date(o.due).getDate() : new Date().getDate());
+    if (r0 && (r0.t === 'nday' || r0.t === 'nweek')) $('rNV').value = r0.n;
+    const syncR = () => { const t = $('rT').value; $('rWk').style.display = t === 'week' ? '' : 'none'; $('rDom').style.display = t === 'month' ? '' : 'none'; $('rN').style.display = t === 'nday' || t === 'nweek' ? '' : 'none'; $('rNu').textContent = t === 'nday' ? '日ごと' : '週ごと'; $('rWk').querySelectorAll('[data-wd]').forEach((b) => b.classList.toggle('on', wk.has(Number(b.dataset.wd)))); };
+    $('rT').onchange = () => { if ($('rT').value === 'week' && !wk.size) wk.add((o && o.due ? new Date(o.due) : new Date()).getDay()); syncR(); };
+    $('rWk').onclick = (e) => { const b = e.target.closest('[data-wd]'); if (!b) return; const d = Number(b.dataset.wd); wk.has(d) ? (wk.size > 1 && wk.delete(d)) : wk.add(d); syncR(); };
+    syncR();
+    $('sRep')._get = () => { const t = $('rT').value; if (!t) return null; return { t, n: Math.max(1, Number($('rNV').value) || 1), days: [...wk], dom: Math.min(31, Math.max(1, Number($('rDomV').value) || 1)) }; };
+  }
+  if ($('sExpClr')) $('sExpClr').onclick = () => { $('sExp').value = ''; };
   if (dateV) $('sDetail').classList.add('open');
   $('sDayBtn').onclick = () => {
     $('sDetail').classList.toggle('open');
@@ -760,13 +923,12 @@ function openSheet(o) {
   }
   $('sTitle').onkeydown = (e) => { if (e.key === 'Enter' && !e.isComposing) { e.preventDefault(); $('sSave').click(); } };
   $('sSave').onclick = () => {
-    const title = $('sTitle').value.trim(); if (!title) { toast('内容を入れてね'); return; }
-    const dup = isNew && curList === SHOP ? st.items.find((x) => x.list === STOCK && !x.done && !x.low && normT(x.title) === normT(title)) : null;
-    if (dup) { ask('「' + esc(dup.title) + '」は「家にあるもの」に入ってるよ。<br>それでも買い物リストに入れる？', () => go(), '入れる'); return; }
+    const title = $('sTitle').value.trim();
+    if (!title && !(curList === PHOTO && (added.length || (o && (o.photos || []).length > removed.size)))) { toast(curList === PHOTO ? '写真を選んでね' : '内容を入れてね'); return; }
     go();
   };
   const go = () => {
-    const title = $('sTitle').value.trim();
+    const title = $('sTitle').value.trim() || (curList === PHOTO ? photoTitle() : '');
     const dv = $('sDate').value, all = $('sAll').checked;
     let due = '';
     if (dv) {
@@ -774,7 +936,7 @@ function openSheet(o) {
       if (all) due = new Date(y, m - 1, dd).toISOString();
       else { const tv = $('sTime').value || '09:00'; const [hh, mm] = tv.split(':').map(Number); due = new Date(y, m - 1, dd, hh, mm).toISOString(); }
     }
-    const data = { list: curList, title, memo: $('sMemo').value, due, allDay: all, remindMin: dv ? Number($('sRem').value) : -1, pinned, assign: [...assign], user: me(), newPhotos: added.slice(), removePhotos: [...removed], qty: $('sQty') ? ($('sQty').value === '' ? '' : Number($('sQty').value)) : (o && hasQty(o) ? o.qty : '') };
+    const data = { list: curList, title, memo: $('sMemo').value, due, allDay: all, remindMin: dv ? Number($('sRem').value) : -1, pinned, assign: [...assign], user: me(), newPhotos: added.slice(), removePhotos: [...removed], noStock: $('sToStock') ? !$('sToStock').checked : (o ? !!o.noStock : false), repeat: $('sRep') ? $('sRep')._get() : (o ? o.repeat || null : null), exp: $('sExp') ? ($('sExp').value ? new Date($('sExp').value + 'T00:00:00').toISOString() : '') : (o ? o.exp || '' : ''), qty: $('sQty') ? ($('sQty').value === '' ? '' : Number($('sQty').value)) : (o && hasQty(o) ? o.qty : '') };
     closeSheet();
     if (isNew) { const top = () => { window.scrollTo(0, 0); if (document.scrollingElement) document.scrollingElement.scrollTop = 0; }; setTimeout(top, 50); call('addItem', [data], () => setTimeout(top, 80)); }
     else call('updateItem', [o.id, data]);
@@ -849,7 +1011,7 @@ function openPrefs() {
       ${radio('date', '日付順（近い日が上）')}
       ${radio('date_desc', '日付順（未来→過去）')}
     </div>
-    <div class="info">ピン留めはどの順番でも一番上。日付のないものは日付順のときは下に並ぶ。</div>
+    <div class="info">予定タブだけはいつも日付順。ピン留めはどの順番でも一番上。日付のないものは日付順のときは下に並ぶ。</div>
     ${window.__mock ? '' : '<div class="card2" style="margin-top:14px"><button type="button" class="opt" id="pChangePin">暗証番号を変える</button></div>'}`;
   if ($('pChangePin')) $('pChangePin').onclick = changePin;
   $('pHist').onchange = () => { prefs.hist = $('pHist').checked; savePrefs(); };
@@ -861,12 +1023,12 @@ function openPrefs() {
 function openTabs() {
   const rows = st.lists.map((l) => {
     const n = st.items.filter((o) => o.list === l).length;
-    return `<div class="tabrow"><span>${esc(l)}</span><span class="cnt">${n ? n + '件' : '空'}</span>${n || st.lists.length <= 1 ? '' : `<button class="btn del sm" data-dl="${esc(l)}">消す</button>`}</div>`;
+    return `<div class="tabrow" data-tabdrag="${esc(l)}"><span class="grip">≡</span><span>${esc(l)}</span><span class="cnt">${n ? n + '件' : '空'}</span>${n || st.lists.length <= 1 ? '' : `<button class="btn del sm" data-dl="${esc(l)}">消す</button>`}</div>`;
   }).join('');
   $('panel').innerHTML = `<h2>タブを追加</h2>
     <div class="f"><input id="tName" maxlength="20" placeholder="タブの名前（例：旅行の持ち物）" enterkeyhint="done"></div>
     <div class="acts"><button class="btn sub" id="tCancel">やめる</button><button class="btn" id="tAdd">追加</button></div>
-    <div class="f" style="margin-top:22px"><label>いまのタブ（空のタブだけ消せる）</label>${rows}</div>`;
+    <div class="f" style="margin-top:22px"><label>いまのタブ（長押しで並べ替え・空のタブだけ消せる）</label>${rows}</div>`;
   $('tCancel').onclick = closeSheet;
   const add = () => { const n = $('tName').value.trim(); if (!n) { toast('タブの名前を入れてね'); return; } closeSheet(); st.tab = n; put('futari_tab', n); call('addList', [n]); };
   $('tAdd').onclick = add;
