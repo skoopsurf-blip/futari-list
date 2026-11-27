@@ -23,7 +23,7 @@
 html, body { background: var(--bg); overflow-x: clip; overscroll-behavior-x: none; touch-action: pan-y; }
 body { font-family: -apple-system, BlinkMacSystemFont, "Hiragino Sans", "Noto Sans JP", sans-serif; color: var(--text); font-size: 16px; }
 #app { min-height: 100vh; }
-header { position: sticky; top: 0; z-index: 4; background: var(--bg); padding: 10px 14px 0; }
+header { position: sticky; top: 0; z-index: 4; background: var(--bg); padding: calc(10px + env(safe-area-inset-top, 0px)) 14px 0; }
 .top { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
 .brand { display: flex; align-items: center; gap: 7px; font-size: 16px; font-weight: 700; }
 .brand svg { width: 22px; height: 22px; color: var(--accent); }
@@ -263,7 +263,7 @@ const LOCAL = /^(localhost|127\.0\.0\.1)$/.test(location.hostname);
 let api;
 // ---- 買い物リスト ⇄ 家にあるもの（本人 2026-11-26）：買ったら家へ・使い切ったら買い物へ・家にある物を買い物に足すと知らせる ----
 // 画面の版。開いたときと表に戻ったときに新しい版が出ていれば読み込み直す（iPhone が古い画面を使い回すため・2026-11-26）
-const APP_VER = '202611262033';
+const APP_VER = '202611272249';
 function checkVer() {
   if (location.protocol !== 'https:') return;
   fetch(location.pathname + '?v=' + Date.now(), { cache: 'no-store' }).then((r) => r.text()).then((t) => {
